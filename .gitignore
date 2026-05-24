@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local environment secrets
+.env
+.env.local
+server/.env
+node_modules/
+server/node_modules/

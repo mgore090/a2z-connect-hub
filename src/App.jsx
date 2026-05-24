@@ -820,6 +820,97 @@ function App() {
   const [selectedPost, setSelectedPost] = useState(null);
   const [newReplyText, setNewReplyText] = useState('');
 
+  // ----------------------------------------------------
+  // FULL-STACK PERSISTENT DATABASE SYNC INTEGRATION
+  // ----------------------------------------------------
+  const updateUserXp = async (amount) => {
+    try {
+      const res = await fetch('/api/user/xp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ xpChange: amount })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUserXp(data.xp);
+      } else {
+        setUserXp(prev => Math.max(0, prev + amount));
+      }
+    } catch (err) {
+      console.error('Error updating XP:', err);
+      setUserXp(prev => Math.max(0, prev + amount));
+    }
+  };
+
+  const fetchForumPosts = async () => {
+    try {
+      const res = await fetch('/api/forum');
+      if (res.ok) {
+        const data = await res.json();
+        setDiscussionPosts(data);
+      }
+    } catch (err) {
+      console.error('Error fetching forum posts:', err);
+    }
+  };
+
+  // Fetch initial profile & syllabus progress from MySQL
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const res = await fetch('/api/user');
+        if (res.ok) {
+          const data = await res.json();
+          setUserXp(data.xp);
+          setSelectedRole(data.active_role);
+          setCompletedTopics(data.completedTopics || {});
+          setLabAchievements(data.labAchievements || []);
+        }
+      } catch (err) {
+        console.error('Error fetching user progress from database:', err);
+      }
+    };
+    
+    fetchUserData();
+    fetchForumPosts();
+  }, []);
+
+  const changeActiveRole = async (roleId) => {
+    setSelectedRole(roleId);
+    try {
+      await fetch('/api/user/active-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roleId })
+      });
+    } catch (err) {
+      console.error('Error syncing active role:', err);
+    }
+  };
+
+  const registerAchievement = async (labId, xpEarned, labTitle, isPrompt = false) => {
+    if (labAchievements.includes(labId)) return;
+    
+    setLabAchievements(prev => [...prev, labId]);
+    updateUserXp(xpEarned);
+    
+    try {
+      await fetch('/api/user/achievement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ labId })
+      });
+    } catch (err) {
+      console.error('Error syncing achievement:', err);
+    }
+    
+    if (isPrompt) {
+      triggerNotification(`🔥 Prompt Simulation complete! Parameter logs saved. +${xpEarned} XP!`);
+    } else {
+      triggerNotification(`🏆 Congratulations! You successfully verified "${labTitle}"! +${xpEarned} XP!`);
+    }
+  };
+
   const studyRoomsList = [
     { 
       id: 'deep-learning', 
@@ -951,16 +1042,18 @@ function App() {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }]);
       setIsChatTyping(false);
-      setUserXp(p => p + 10);
+      updateUserXp(10);
       triggerNotification("🤖 Mentor Chat active: +10 XP awarded!");
     }, 1200);
   };
 
   // Upvote forum posts
-  const handleUpvotePost = (postId) => {
+  const handleUpvotePost = async (postId) => {
+    let change = 0;
     setDiscussionPosts(prev => prev.map(post => {
       if (post.id === postId) {
         const added = !post.voted;
+        change = added ? 1 : -1;
         return {
           ...post,
           votes: added ? post.votes + 1 : post.votes - 1,
@@ -969,85 +1062,184 @@ function App() {
       }
       return post;
     }));
-    triggerNotification("👍 Post upvoted!");
+    
+    try {
+      await fetch(`/api/forum/post/${postId}/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ change })
+      });
+    } catch (err) {
+      console.error('Error syncing vote:', err);
+    }
+    
+    triggerNotification(change > 0 ? "👍 Post upvoted!" : "Removed upvote");
   };
 
   // Create new Forum Post
-  const handleCreateForumPost = () => {
+  const handleCreateForumPost = async () => {
     if (!forumNewPostTitle.trim() || !forumNewPostContent.trim()) {
       triggerNotification("⚠️ Please fill in all fields to publish.");
       return;
     }
 
-    const newPost = {
-      id: discussionPosts.length + 1,
-      title: forumNewPostTitle,
-      author: "mgore (You)",
-      avatar: "M",
-      category: forumNewPostCategory,
-      time: "Just now",
-      content: forumNewPostContent,
-      votes: 1,
-      voted: true,
-      replies: []
-    };
+    try {
+      const res = await fetch('/api/forum/post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: forumNewPostTitle,
+          category: forumNewPostCategory,
+          content: forumNewPostContent
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDiscussionPosts(prev => [data.post, ...prev]);
+      } else {
+        const newPost = {
+          id: Date.now(),
+          title: forumNewPostTitle,
+          author: "mgore (You)",
+          avatar: "M",
+          category: forumNewPostCategory,
+          time: "Just now",
+          content: forumNewPostContent,
+          votes: 1,
+          voted: true,
+          replies: []
+        };
+        setDiscussionPosts(prev => [newPost, ...prev]);
+      }
+    } catch (err) {
+      console.error('Error creating post:', err);
+    }
 
-    setDiscussionPosts([newPost, ...discussionPosts]);
     setIsNewPostModalOpen(false);
     setForumNewPostTitle('');
     setForumNewPostContent('');
-    setUserXp(p => p + 30);
+    updateUserXp(30);
     triggerNotification("🎉 Question published to Q&A Board! +30 XP!");
   };
 
   // Reply to Forum Thread
-  const handleSubmitForumReply = () => {
+  const handleSubmitForumReply = async () => {
     if (!newReplyText.trim()) return;
 
-    const newReply = {
-      author: "mgore (You)",
-      avatar: "M",
-      content: newReplyText,
-      time: "Just now"
-    };
+    try {
+      const res = await fetch(`/api/forum/post/${selectedPost.id}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newReplyText })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const updatedPost = {
+          ...selectedPost,
+          replies: [...selectedPost.replies, data.reply]
+        };
+        setDiscussionPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
+        setSelectedPost(updatedPost);
+      } else {
+        const newReply = {
+          author: "mgore (You)",
+          avatar: "M",
+          content: newReplyText,
+          time: "Just now"
+        };
+        const updatedPost = {
+          ...selectedPost,
+          replies: [...selectedPost.replies, newReply]
+        };
+        setDiscussionPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
+        setSelectedPost(updatedPost);
+      }
+    } catch (err) {
+      console.error('Error submitting reply:', err);
+    }
 
-    const updatedPost = {
-      ...selectedPost,
-      replies: [...selectedPost.replies, newReply]
-    };
-
-    setDiscussionPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
-    setSelectedPost(updatedPost);
     setNewReplyText('');
-    setUserXp(p => p + 15);
+    updateUserXp(15);
     triggerNotification("💬 Reply published to thread! +15 XP!");
   };
 
   // Join a Virtual Study Room
-  const handleJoinRoom = (roomId) => {
+  const handleJoinRoom = async (roomId) => {
     const roomObj = studyRoomsList.find(r => r.id === roomId);
     if (!roomObj) return;
 
     setJoinedRoomId(roomId);
     
-    // Seed initial co-working chat history
-    setStudyMessages([
-      { author: 'System', text: `✨ You joined the room "${roomObj.name}". Active peers: ${roomObj.peers.join(', ')}.`, time: '10:30 AM' },
-      { author: roomObj.peers[0], text: "Hey! Glad you could join. I am tracing lists, dict lookups, and file reading codes right now.", time: '10:31 AM' },
-      { author: roomObj.peers[1] || 'Alice', text: "Welcome! Setting up my local virtual environment, let me know if anyone needs the pip config command.", time: '10:32 AM' }
-    ]);
+    try {
+      const res = await fetch(`/api/study/rooms/${roomId}/messages`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length > 0) {
+          setStudyMessages(data.map(m => ({
+            author: m.author,
+            text: m.text,
+            time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          })));
+        } else {
+          const initialMsgs = [
+            { author: roomObj.peers[0], text: "Hey! Glad you could join. I am tracing lists, dict lookups, and file reading codes right now." },
+            { author: roomObj.peers[1] || 'Alice', text: "Welcome! Setting up my local virtual environment, let me know if anyone needs the pip config command." }
+          ];
+          
+          const loadedMsgs = [
+            { author: 'System', text: `✨ You joined the room "${roomObj.name}". Active peers: ${roomObj.peers.join(', ')}.`, time: '10:30 AM' }
+          ];
+
+          for (const msg of initialMsgs) {
+            const saveRes = await fetch(`/api/study/rooms/${roomId}/messages`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(msg)
+            });
+            if (saveRes.ok) {
+              const saved = await saveRes.json();
+              loadedMsgs.push({
+                author: saved.author,
+                text: saved.text,
+                time: new Date(saved.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              });
+            }
+          }
+          setStudyMessages(loadedMsgs);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching room messages:', err);
+      setStudyMessages([
+        { author: 'System', text: `✨ You joined the room "${roomObj.name}". Active peers: ${roomObj.peers.join(', ')}.`, time: '10:30 AM' },
+        { author: roomObj.peers[0], text: "Hey! Glad you could join. I am tracing lists, dict lookups, and file reading codes right now.", time: '10:31 AM' },
+        { author: roomObj.peers[1] || 'Alice', text: "Welcome! Setting up my local virtual environment, let me know if anyone needs the pip config command.", time: '10:32 AM' }
+      ]);
+    }
   };
 
   // Send Study Room Peer Chat Message
-  const handleSendPeerMessage = () => {
+  const handleSendPeerMessage = async () => {
     if (!peerChatInput.trim()) return;
 
-    const newUserMsg = { author: 'mgore (You)', text: peerChatInput, time: 'Just now' };
-    setStudyMessages(prev => [...prev, newUserMsg]);
+    const text = peerChatInput;
     setPeerChatInput('');
 
-    // Trigger simulated supportive peer response
-    setTimeout(() => {
+    const newUserMsg = { author: 'mgore (You)', text: text, time: 'Just now' };
+    setStudyMessages(prev => [...prev, newUserMsg]);
+
+    try {
+      await fetch(`/api/study/rooms/${joinedRoomId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ author: 'mgore (You)', text: text })
+      });
+    } catch (err) {
+      console.error('Error saving study room message:', err);
+    }
+
+    setTimeout(async () => {
       const peerReplies = [
         "That makes total sense! Let's run a test in the Sandbox compiler.",
         "Oh neat! Adding that to my notes, thank you for sharing.",
@@ -1057,25 +1249,54 @@ function App() {
       const randomPeer = studyRoomsList.find(r => r.id === joinedRoomId)?.peers[0] || 'Alice';
       const randomMsg = peerReplies[Math.floor(Math.random() * peerReplies.length)];
 
-      setStudyMessages(prev => [...prev, {
-        author: randomPeer,
-        text: randomMsg,
-        time: 'Just now'
-      }]);
-      setUserXp(p => p + 5);
+      try {
+        const res = await fetch(`/api/study/rooms/${joinedRoomId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ author: randomPeer, text: randomMsg })
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          setStudyMessages(prev => [...prev, {
+            author: saved.author,
+            text: saved.text,
+            time: new Date(saved.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }]);
+        } else {
+          setStudyMessages(prev => [...prev, { author: randomPeer, text: randomMsg, time: 'Just now' }]);
+        }
+      } catch (err) {
+        setStudyMessages(prev => [...prev, { author: randomPeer, text: randomMsg, time: 'Just now' }]);
+      }
+      
+      updateUserXp(5);
     }, 1000);
   };
 
   // Book slot with real-time Expert Mentor
-  const handleBookSlot = () => {
+  const handleBookSlot = async () => {
     if (!bookingDateSlot) {
       triggerNotification("⚠️ Please pick an available calendar slot.");
       return;
     }
 
     setIsBookingSuccess(true);
-    setUserXp(p => p + 40);
+    updateUserXp(40);
     triggerNotification(`📅 Consulting session booked with ${selectedExpert.name}! +40 XP!`);
+
+    try {
+      await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expertId: selectedExpert.id,
+          expertName: selectedExpert.name,
+          slot: bookingDateSlot
+        })
+      });
+    } catch (err) {
+      console.error('Error creating booking:', err);
+    }
   };
 
 
@@ -1160,18 +1381,29 @@ function App() {
   };
 
   // Toggle topic completion
-  const handleToggleTopic = (topicId, topicTitle) => {
+  const handleToggleTopic = async (topicId, topicTitle) => {
     const isCompleted = !!completedTopics[topicId];
+    const newCompleted = !isCompleted;
     setCompletedTopics({
       ...completedTopics,
-      [topicId]: !isCompleted
+      [topicId]: newCompleted
     });
 
-    if (!isCompleted) {
-      setUserXp(prev => prev + 50);
+    try {
+      await fetch('/api/user/completed-topic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topicId, topicTitle, isCompleted: newCompleted })
+      });
+    } catch (err) {
+      console.error('Error syncing completed topic:', err);
+    }
+
+    if (newCompleted) {
+      updateUserXp(50);
       triggerNotification(`🎉 Completed: "${topicTitle}"! +50 XP Awarded!`);
     } else {
-      setUserXp(prev => Math.max(0, prev - 50));
+      updateUserXp(-50);
     }
   };
 
@@ -1199,9 +1431,7 @@ function App() {
           setTerminalStatus('success');
           // Add to achievements
           if (!labAchievements.includes(activeLabId)) {
-            setLabAchievements([...labAchievements, activeLabId]);
-            setUserXp(prev => prev + finalResult.xpEarned);
-            triggerNotification(`🏆 Congratulations! You successfully verified "${targetLab.title}"! +${finalResult.xpEarned} XP!`);
+            registerAchievement(activeLabId, finalResult.xpEarned, targetLab.title);
           }
           // Mark topic as completed
           const targetTopic = currentRoleData.syllabus.flatMap(s => s.topics).find(t => t.labId === activeLabId);
@@ -1251,9 +1481,7 @@ function App() {
         setIsStreaming(false);
         // Completed prompt sandbox award
         if (!labAchievements.includes(activeLabId)) {
-          setLabAchievements([...labAchievements, activeLabId]);
-          setUserXp(prev => prev + result.xpEarned);
-          triggerNotification(`🔥 Prompt Simulation complete! Parameter logs saved. +${result.xpEarned} XP!`);
+          registerAchievement(activeLabId, result.xpEarned, activeLab.title, true);
         }
         
         // Mark topic completed
@@ -1334,7 +1562,7 @@ function App() {
     
     const isCorrect = idx === currentQuestions[activeQuestionIdx].correct;
     if (isCorrect) {
-      setUserXp(prev => prev + 25);
+      updateUserXp(25);
       triggerNotification("✅ Correct Answer! +25 XP awarded!");
     } else {
       triggerNotification("❌ Incorrect answer. Read the Javatpoint explanation to learn!");
@@ -1494,7 +1722,7 @@ function App() {
                     key={role.id} 
                     className="role-card" 
                     onClick={() => {
-                      setSelectedRole(role.id);
+                      changeActiveRole(role.id);
                       handleTabChange('roadmap');
                     }}
                   >
