@@ -911,6 +911,64 @@ function App() {
     }
   };
 
+  // Auth Portal States & Actions
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authUsername, setAuthUsername] = useState('');
+  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [authError, setAuthError] = useState('');
+
+  const handleAuthSubmit = async (e) => {
+    if (e) e.preventDefault();
+    setAuthError('');
+
+    if (!authEmail || !authPassword || (!isLoginMode && !authUsername)) {
+      setAuthError('Please fill in all required fields.');
+      return;
+    }
+
+    const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/register';
+    const payload = isLoginMode 
+      ? { email: authEmail, password: authPassword }
+      : { username: authUsername, email: authEmail, password: authPassword };
+
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('token', data.token);
+        setToken(data.token);
+        setUser({ username: data.user.username, email: data.user.email, avatar: data.user.avatar || data.user.username.charAt(0).toUpperCase() });
+        setAuthEmail('');
+        setAuthPassword('');
+        setAuthUsername('');
+        triggerNotification(isLoginMode ? `👋 Welcome back, ${data.user.username}!` : `🎉 Account created! Welcome, ${data.user.username}!`);
+      } else {
+        setAuthError(data.error || 'Authentication failed. Please verify credentials.');
+      }
+    } catch (err) {
+      console.error('Error during auth:', err);
+      setAuthError('Server is currently offline. Please try again later.');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setToken('');
+    setUser(null);
+    setCompletedTopics({});
+    setLabAchievements([]);
+    setUserXp(0);
+    triggerNotification("🔒 Logged out successfully. Session terminated.");
+  };
+
   const studyRoomsList = [
     { 
       id: 'deep-learning', 
@@ -1594,6 +1652,84 @@ function App() {
     return Math.round((completed / topics.length) * 100);
   };
 
+  if (!token || !user) {
+    return (
+      <div className="auth-overlay">
+        <div className="neural-grid"></div>
+        <div className="auth-container">
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+            <div className="brand-logo" style={{ width: '56px', height: '56px', fontSize: '1.8rem' }}>AΩ</div>
+          </div>
+          <h2 className="auth-title">
+            {isLoginMode ? 'Welcome back to A2Z Learn' : 'Create your A2Z Account'}
+          </h2>
+          <p className="auth-subtitle">
+            {isLoginMode ? 'Sign in to access your persistent roadmaps & sandbox labs.' : 'Open an account to track syllabus progress, bookings, & chats.'}
+          </p>
+
+          {authError && <div className="auth-error">{authError}</div>}
+
+          <form onSubmit={handleAuthSubmit}>
+            {!isLoginMode && (
+              <div className="auth-form-group">
+                <label className="auth-label">Username</label>
+                <input 
+                  type="text" 
+                  className="auth-input" 
+                  placeholder="e.g. mgore" 
+                  value={authUsername}
+                  onChange={(e) => setAuthUsername(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="auth-form-group">
+              <label className="auth-label">Email Address</label>
+              <input 
+                type="email" 
+                className="auth-input" 
+                placeholder="e.g. mgore@a2z.com" 
+                value={authEmail}
+                onChange={(e) => setAuthEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="auth-form-group">
+              <label className="auth-label">Password</label>
+              <input 
+                type="password" 
+                className="auth-input" 
+                placeholder="••••••••" 
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button type="submit" className="auth-submit-btn">
+              {isLoginMode ? 'Sign In to Workspace' : 'Open My Account'}
+            </button>
+          </form>
+
+          <p className="auth-toggle-text">
+            {isLoginMode ? "New to A2Z Connect Hub?" : "Already have an account?"}
+            <button 
+              className="auth-toggle-btn"
+              onClick={() => {
+                setIsLoginMode(!isLoginMode);
+                setAuthError('');
+              }}
+            >
+              {isLoginMode ? 'Open Account' : 'Sign In'}
+            </button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="neural-grid"></div>
@@ -1658,18 +1794,25 @@ function App() {
           </button>
         </nav>
 
-        {/* Dynamic User Statistics Card Widget */}
-        <div className="user-profile-widget">
-          <div className="xp-bar-container">
-            <div className="xp-label">
-              <span>LEVEL {userLevel} LEARNER</span>
-              <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>{userXp} XP</span>
+        {/* Dynamic User Statistics Card Widget & Logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div className="user-profile-widget">
+            <div className="xp-bar-container">
+              <div className="xp-label">
+                <span>{user ? user.username.toUpperCase() : 'LEARNER'}</span>
+                <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>{userXp} XP</span>
+              </div>
+              <div className="xp-progress-bg">
+                <div className="xp-progress-fill" style={{ width: `${userXp % 100}%` }}></div>
+              </div>
             </div>
-            <div className="xp-progress-bg">
-              <div className="xp-progress-fill" style={{ width: `${userXp % 100}%` }}></div>
-            </div>
+            <div className="avatar-circle">{user ? user.username.charAt(0).toUpperCase() : 'M'}</div>
           </div>
-          <div className="avatar-circle">M</div>
+          
+          <button className="logout-nav-btn" onClick={handleLogout}>
+            <Lock size={14} />
+            Log Out
+          </button>
         </div>
       </header>
 

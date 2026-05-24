@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -55,14 +56,27 @@ export async function initializeDatabase() {
 
     console.log(`[DB] Connected to database pool for "${DB_NAME}".`);
 
+    // Resiliency: check if old schema exists and drop tables if necessary to upgrade clean auth
+    try {
+      const [cols] = await pool.query("SHOW COLUMNS FROM users LIKE 'email'");
+      if (cols.length === 0) {
+        console.log('[DB] Old database schema detected (missing email). Dropping old tables to recreate clean authentication schemas...');
+        await pool.query('DROP TABLE IF EXISTS completed_topics, lab_achievements, bookings, study_messages, forum_replies, forum_posts, users;');
+      }
+    } catch (e) {
+      // Users table probably does not exist yet, which is expected on clean install!
+    }
+
     // 3. Create Tables
     console.log('[DB] Initializing database tables...');
 
-    // Users Table
+    // Users Table (Auth version)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(100) DEFAULT 'mgore',
+        username VARCHAR(100) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
         avatar VARCHAR(10) DEFAULT 'M',
         xp INT DEFAULT 380,
         active_role VARCHAR(100) DEFAULT 'gen-ai'
@@ -160,9 +174,13 @@ async function seedDatabase() {
   // 1. Seed user if empty
   const [userRows] = await pool.query('SELECT * FROM users LIMIT 1');
   if (userRows.length === 0) {
-    console.log('[DB] Seeding default user "mgore"...');
+    console.log('[DB] Seeding default authenticated user "mgore"...');
+    
+    // Hash password 'password123'
+    const hashedPassword = await bcrypt.hash('password123', 10);
     await pool.query(
-      'INSERT INTO users (id, username, avatar, xp, active_role) VALUES (1, "mgore", "M", 380, "gen-ai")'
+      'INSERT INTO users (id, username, email, password_hash, avatar, xp, active_role) VALUES (1, "mgore", "mgore@a2z.com", ?, "M", 380, "gen-ai")',
+      [hashedPassword]
     );
 
     // Seed completed topics matching frontend default

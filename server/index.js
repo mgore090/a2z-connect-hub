@@ -1,12 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { initializeDatabase, query } from './db.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || 'a2z_connect_hub_ultra_secure_secret_key_101';
 
 // Middleware
 app.use(cors());
@@ -19,31 +22,146 @@ app.use((req, res, next) => {
 });
 
 // ----------------------------------------------------
-// USER PROGRESS ENDPOINTS
+// AUTHENTICATION MIDDLEWARE
+// ----------------------------------------------------
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token missing' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ error: 'Access token invalid or expired' });
+    }
+    req.user = decoded; // Contains id, username, email
+    next();
+  });
+}
+
+// ----------------------------------------------------
+// AUTHENTICATION CONTROLLERS
 // ----------------------------------------------------
 
-// GET /api/user - Fetch user statistics and syllabus completion
-app.get('/api/user', async (req, res) => {
+// POST /api/auth/register - Account Opening
+app.post('/api/auth/register', async (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Missing username, email, or password' });
+  }
+
   try {
-    const [userRows] = await query('SELECT * FROM users WHERE id = 1');
+    // Check if email already exists
+    const [existing] = await query('SELECT * FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+
+    // Hash password and insert
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [result] = await query(
+      'INSERT INTO users (username, email, password_hash, xp, active_role) VALUES (?, ?, ?, 0, "gen-ai")',
+      [username, email, hashedPassword]
+    );
+    const newUserId = result.insertId;
+
+    // Sign JWT
+    const token = jwt.sign(
+      { id: newUserId, username, email },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: newUserId,
+        username,
+        email,
+        xp: 0,
+        active_role: 'gen-ai'
+      }
+    });
+  } catch (err) {
+    console.error('Error during account opening registration:', err);
+    res.status(500).json({ error: 'Account opening failed' });
+  }
+});
+
+// POST /api/auth/login - Log In
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Missing email or password' });
+  }
+
+  try {
+    const [rows] = await query('SELECT * FROM users WHERE email = ?', [email]);
+    if (rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const user = rows[0];
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Sign JWT
+    const token = jwt.sign(
+      { id: user.id, username: user.username, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        xp: user.xp,
+        active_role: user.active_role
+      }
+    });
+  } catch (err) {
+    console.error('Error during login:', err);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+// ----------------------------------------------------
+// USER PROGRESS ENDPOINTS (AUTHENTICATED)
+// ----------------------------------------------------
+
+// GET /api/user - Fetch student profile and syllabus completion
+app.get('/api/user', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const [userRows] = await query('SELECT * FROM users WHERE id = ?', [userId]);
     if (userRows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
     const user = userRows[0];
 
     // Fetch completed topics
-    const [topicRows] = await query('SELECT topic_id FROM completed_topics WHERE user_id = 1');
+    const [topicRows] = await query('SELECT topic_id FROM completed_topics WHERE user_id = ?', [userId]);
     const completedTopics = {};
     topicRows.forEach(row => {
       completedTopics[row.topic_id] = true;
     });
 
     // Fetch lab achievements
-    const [achievementRows] = await query('SELECT lab_id FROM lab_achievements WHERE user_id = 1');
+    const [achievementRows] = await query('SELECT lab_id FROM lab_achievements WHERE user_id = ?', [userId]);
     const labAchievements = achievementRows.map(row => row.lab_id);
 
     res.json({
       username: user.username,
+      email: user.email,
       avatar: user.avatar,
       xp: user.xp,
       active_role: user.active_role,
@@ -51,21 +169,22 @@ app.get('/api/user', async (req, res) => {
       labAchievements
     });
   } catch (err) {
-    console.error('Error fetching user:', err);
+    console.error('Error fetching user progress:', err);
     res.status(500).json({ error: 'Database query failed' });
   }
 });
 
 // POST /api/user/xp - Adjust user experience points
-app.post('/api/user/xp', async (req, res) => {
+app.post('/api/user/xp', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
   const { xpChange } = req.body;
   if (xpChange === undefined) {
     return res.status(400).json({ error: 'Missing xpChange in body' });
   }
 
   try {
-    await query('UPDATE users SET xp = xp + ? WHERE id = 1', [xpChange]);
-    const [userRows] = await query('SELECT xp FROM users WHERE id = 1');
+    await query('UPDATE users SET xp = xp + ? WHERE id = ?', [xpChange, userId]);
+    const [userRows] = await query('SELECT xp FROM users WHERE id = ?', [userId]);
     res.json({ success: true, xp: userRows[0].xp });
   } catch (err) {
     console.error('Error updating XP:', err);
@@ -74,7 +193,8 @@ app.post('/api/user/xp', async (req, res) => {
 });
 
 // POST /api/user/completed-topic - Check / Uncheck syllabus topic completion
-app.post('/api/user/completed-topic', async (req, res) => {
+app.post('/api/user/completed-topic', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
   const { topicId, topicTitle, isCompleted } = req.body;
   if (!topicId) {
     return res.status(400).json({ error: 'Missing topicId in body' });
@@ -83,11 +203,11 @@ app.post('/api/user/completed-topic', async (req, res) => {
   try {
     if (isCompleted) {
       await query(
-        'INSERT INTO completed_topics (user_id, topic_id, topic_title) VALUES (1, ?, ?) ON DUPLICATE KEY UPDATE topic_title = topic_title',
-        [topicId, topicTitle || topicId]
+        'INSERT INTO completed_topics (user_id, topic_id, topic_title) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE topic_title = topic_title',
+        [userId, topicId, topicTitle || topicId]
       );
     } else {
-      await query('DELETE FROM completed_topics WHERE user_id = 1 AND topic_id = ?', [topicId]);
+      await query('DELETE FROM completed_topics WHERE user_id = ? AND topic_id = ?', [userId, topicId]);
     }
     res.json({ success: true });
   } catch (err) {
@@ -97,14 +217,15 @@ app.post('/api/user/completed-topic', async (req, res) => {
 });
 
 // POST /api/user/active-role - Change selected role
-app.post('/api/user/active-role', async (req, res) => {
+app.post('/api/user/active-role', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
   const { roleId } = req.body;
   if (!roleId) {
     return res.status(400).json({ error: 'Missing roleId in body' });
   }
 
   try {
-    await query('UPDATE users SET active_role = ? WHERE id = 1', [roleId]);
+    await query('UPDATE users SET active_role = ? WHERE id = ?', [roleId, userId]);
     res.json({ success: true });
   } catch (err) {
     console.error('Error changing active role:', err);
@@ -113,7 +234,8 @@ app.post('/api/user/active-role', async (req, res) => {
 });
 
 // POST /api/user/achievement - Add a lab achievement
-app.post('/api/user/achievement', async (req, res) => {
+app.post('/api/user/achievement', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
   const { labId } = req.body;
   if (!labId) {
     return res.status(400).json({ error: 'Missing labId in body' });
@@ -121,8 +243,8 @@ app.post('/api/user/achievement', async (req, res) => {
 
   try {
     await query(
-      'INSERT INTO lab_achievements (user_id, lab_id) VALUES (1, ?) ON DUPLICATE KEY UPDATE lab_id = lab_id',
-      [labId]
+      'INSERT INTO lab_achievements (user_id, lab_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE lab_id = lab_id',
+      [userId, labId]
     );
     res.json({ success: true });
   } catch (err) {
@@ -132,30 +254,13 @@ app.post('/api/user/achievement', async (req, res) => {
 });
 
 // POST /api/user/reset - Reset progress to clean slate
-app.post('/api/user/reset', async (req, res) => {
+app.post('/api/user/reset', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
   try {
-    await query('UPDATE users SET xp = 380, active_role = "gen-ai" WHERE id = 1');
-    await query('DELETE FROM completed_topics WHERE user_id = 1');
-    await query('DELETE FROM lab_achievements WHERE user_id = 1');
-    await query('DELETE FROM bookings WHERE user_id = 1');
-
-    // Re-seed original default completed topics
-    const defaultTopics = [
-      { id: "llm-apis", title: "API Integrations & Parameters" },
-      { id: "vector-search", title: "Text Embeddings & Vector DB Indexing" },
-      { id: "linear-algebra", title: "Linear Algebra & Optimization for ML" },
-      { id: "classical-ml", title: "Supervised Classification & Regression" },
-      { id: "zero-few-shot", title: "Zero-Shot vs. Few-Shot In-Context Learning" },
-      { id: "dockerize-ml", title: "Containerizing FastAPI Models with Docker" }
-    ];
-
-    for (const topic of defaultTopics) {
-      await query(
-        'INSERT INTO completed_topics (user_id, topic_id, topic_title) VALUES (1, ?, ?)',
-        [topic.id, topic.title]
-      );
-    }
-
+    await query('UPDATE users SET xp = 0, active_role = "gen-ai" WHERE id = ?', [userId]);
+    await query('DELETE FROM completed_topics WHERE user_id = ?', [userId]);
+    await query('DELETE FROM lab_achievements WHERE user_id = ?', [userId]);
+    await query('DELETE FROM bookings WHERE user_id = ?', [userId]);
     res.json({ success: true });
   } catch (err) {
     console.error('Error resetting user progress:', err);
@@ -164,11 +269,11 @@ app.post('/api/user/reset', async (req, res) => {
 });
 
 // ----------------------------------------------------
-// DISCUSSION BOARD (FORUM) ENDPOINTS
+// DISCUSSION BOARD (FORUM) ENDPOINTS (AUTHENTICATED)
 // ----------------------------------------------------
 
 // GET /api/forum - Fetch all discussions with nested replies
-app.get('/api/forum', async (req, res) => {
+app.get('/api/forum', authenticateToken, async (req, res) => {
   try {
     const [posts] = await query('SELECT * FROM forum_posts ORDER BY created_at DESC');
     const [replies] = await query('SELECT * FROM forum_replies ORDER BY created_at ASC');
@@ -179,10 +284,10 @@ app.get('/api/forum', async (req, res) => {
       author: post.author,
       avatar: post.avatar,
       category: post.category,
-      time: post.created_at, // Map sql timestamp directly or format on client
+      time: post.created_at,
       content: post.content,
       votes: post.votes,
-      voted: false, // In a robust multi-user app we would check a post_upvotes relation table
+      voted: false,
       replies: replies
         .filter(reply => reply.post_id === post.id)
         .map(reply => ({
@@ -201,7 +306,8 @@ app.get('/api/forum', async (req, res) => {
 });
 
 // POST /api/forum/post - Create a new post
-app.post('/api/forum/post', async (req, res) => {
+app.post('/api/forum/post', authenticateToken, async (req, res) => {
+  const username = req.user.username;
   const { title, category, content } = req.body;
   if (!title || !category || !content) {
     return res.status(400).json({ error: 'Missing title, category, or content' });
@@ -209,11 +315,11 @@ app.post('/api/forum/post', async (req, res) => {
 
   try {
     const [result] = await query(
-      'INSERT INTO forum_posts (title, author, avatar, category, content) VALUES (?, "mgore (You)", "M", ?, ?)',
-      [title, category, content]
+      'INSERT INTO forum_posts (title, author, avatar, category, content) VALUES (?, ?, ?, ?, ?)',
+      [title, `${username} (You)`, username.charAt(0).toUpperCase(), category, content]
     );
     const newPostId = result.insertId;
-    
+
     const [insertedRows] = await query('SELECT * FROM forum_posts WHERE id = ?', [newPostId]);
     const post = insertedRows[0];
 
@@ -239,7 +345,7 @@ app.post('/api/forum/post', async (req, res) => {
 });
 
 // POST /api/forum/post/:id/vote - Toggle upvotes on a post
-app.post('/api/forum/post/:id/vote', async (req, res) => {
+app.post('/api/forum/post/:id/vote', authenticateToken, async (req, res) => {
   const postId = req.params.id;
   const { change } = req.body; // Expects 1 or -1
   if (change === undefined) {
@@ -256,7 +362,8 @@ app.post('/api/forum/post/:id/vote', async (req, res) => {
 });
 
 // POST /api/forum/post/:id/reply - Write a reply to a post
-app.post('/api/forum/post/:id/reply', async (req, res) => {
+app.post('/api/forum/post/:id/reply', authenticateToken, async (req, res) => {
+  const username = req.user.username;
   const postId = req.params.id;
   const { content } = req.body;
   if (!content) {
@@ -265,15 +372,15 @@ app.post('/api/forum/post/:id/reply', async (req, res) => {
 
   try {
     await query(
-      'INSERT INTO forum_replies (post_id, author, avatar, content) VALUES (?, "mgore (You)", "M", ?)',
-      [postId, content]
+      'INSERT INTO forum_replies (post_id, author, avatar, content) VALUES (?, ?, ?, ?)',
+      [postId, `${username} (You)`, username.charAt(0).toUpperCase(), content]
     );
 
     res.json({
       success: true,
       reply: {
-        author: "mgore (You)",
-        avatar: "M",
+        author: `${username} (You)`,
+        avatar: username.charAt(0).toUpperCase(),
         content: content,
         time: new Date()
       }
@@ -285,13 +392,14 @@ app.post('/api/forum/post/:id/reply', async (req, res) => {
 });
 
 // ----------------------------------------------------
-// EXPERT CONSULTING BOOKINGS ENDPOINTS
+// EXPERT CONSULTING BOOKINGS ENDPOINTS (AUTHENTICATED)
 // ----------------------------------------------------
 
 // GET /api/bookings - Fetch user bookings
-app.get('/api/bookings', async (req, res) => {
+app.get('/api/bookings', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
   try {
-    const [rows] = await query('SELECT * FROM bookings WHERE user_id = 1 ORDER BY booked_at DESC');
+    const [rows] = await query('SELECT * FROM bookings WHERE user_id = ? ORDER BY booked_at DESC', [userId]);
     res.json(rows);
   } catch (err) {
     console.error('Error fetching bookings:', err);
@@ -300,7 +408,8 @@ app.get('/api/bookings', async (req, res) => {
 });
 
 // POST /api/bookings - Book an expert session slot
-app.post('/api/bookings', async (req, res) => {
+app.post('/api/bookings', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
   const { expertId, expertName, slot } = req.body;
   if (!expertId || !expertName || !slot) {
     return res.status(400).json({ error: 'Missing expertId, expertName, or slot in body' });
@@ -308,8 +417,8 @@ app.post('/api/bookings', async (req, res) => {
 
   try {
     await query(
-      'INSERT INTO bookings (user_id, expert_id, expert_name, slot) VALUES (1, ?, ?, ?)',
-      [expertId, expertName, slot]
+      'INSERT INTO bookings (user_id, expert_id, expert_name, slot) VALUES (?, ?, ?, ?)',
+      [userId, expertId, expertName, slot]
     );
     res.json({ success: true });
   } catch (err) {
@@ -319,11 +428,11 @@ app.post('/api/bookings', async (req, res) => {
 });
 
 // ----------------------------------------------------
-// STUDY ROOM MESSAGES ENDPOINTS
+// STUDY ROOM MESSAGES ENDPOINTS (AUTHENTICATED)
 // ----------------------------------------------------
 
 // GET /api/study/rooms/:roomId/messages - Fetch chat log
-app.get('/api/study/rooms/:roomId/messages', async (req, res) => {
+app.get('/api/study/rooms/:roomId/messages', authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   try {
     const [rows] = await query('SELECT * FROM study_messages WHERE room_id = ? ORDER BY created_at ASC', [roomId]);
@@ -335,7 +444,7 @@ app.get('/api/study/rooms/:roomId/messages', async (req, res) => {
 });
 
 // POST /api/study/rooms/:roomId/messages - Send peer chat message
-app.post('/api/study/rooms/:roomId/messages', async (req, res) => {
+app.post('/api/study/rooms/:roomId/messages', authenticateToken, async (req, res) => {
   const { roomId } = req.params;
   const { text, author } = req.body;
   if (!text || !author) {
