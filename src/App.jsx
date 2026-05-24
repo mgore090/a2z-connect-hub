@@ -824,10 +824,17 @@ function App() {
   // FULL-STACK PERSISTENT DATABASE SYNC INTEGRATION
   // ----------------------------------------------------
   const updateUserXp = async (amount) => {
+    if (!token) {
+      setUserXp(prev => Math.max(0, prev + amount));
+      return;
+    }
     try {
       const res = await fetch('/api/user/xp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ xpChange: amount })
       });
       if (res.ok) {
@@ -843,8 +850,11 @@ function App() {
   };
 
   const fetchForumPosts = async () => {
+    if (!token) return;
     try {
-      const res = await fetch('/api/forum');
+      const res = await fetch('/api/forum', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (res.ok) {
         const data = await res.json();
         setDiscussionPosts(data);
@@ -857,14 +867,23 @@ function App() {
   // Fetch initial profile & syllabus progress from MySQL
   useEffect(() => {
     const fetchUserData = async () => {
+      if (!token) return;
       try {
-        const res = await fetch('/api/user');
+        const res = await fetch('/api/user', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (res.ok) {
           const data = await res.json();
           setUserXp(data.xp);
           setSelectedRole(data.active_role);
           setCompletedTopics(data.completedTopics || {});
           setLabAchievements(data.labAchievements || []);
+          setUser({ username: data.username, email: data.email, avatar: data.avatar || data.username.charAt(0).toUpperCase() });
+        } else if (res.status === 401 || res.status === 403) {
+          // Token expired or invalid, reset token silently to guest mode
+          localStorage.removeItem('token');
+          setToken('');
+          setUser(null);
         }
       } catch (err) {
         console.error('Error fetching user progress from database:', err);
@@ -873,14 +892,18 @@ function App() {
     
     fetchUserData();
     fetchForumPosts();
-  }, []);
+  }, [token]);
 
   const changeActiveRole = async (roleId) => {
     setSelectedRole(roleId);
+    if (!token) return;
     try {
       await fetch('/api/user/active-role', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ roleId })
       });
     } catch (err) {
@@ -894,10 +917,22 @@ function App() {
     setLabAchievements(prev => [...prev, labId]);
     updateUserXp(xpEarned);
     
+    if (!token) {
+      if (isPrompt) {
+        triggerNotification(`🔥 Prompt Simulation complete! Parameter logs saved. +${xpEarned} XP!`);
+      } else {
+        triggerNotification(`🏆 Congratulations! You successfully verified "${labTitle}"! +${xpEarned} XP!`);
+      }
+      return;
+    }
+
     try {
       await fetch('/api/user/achievement', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ labId })
       });
     } catch (err) {
@@ -919,6 +954,30 @@ function App() {
   const [authUsername, setAuthUsername] = useState('');
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [authError, setAuthError] = useState('');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
+  const dropdownRef = useRef(null);
+
+  // Outside click listener to close dropdown
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (isProfileDropdownOpen && dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isProfileDropdownOpen]);
+
+  const requireAuth = (callback) => {
+    if (!token || !user) {
+      triggerNotification("🔒 Sign in to save progress!");
+      setIsAuthModalOpen(true);
+      return;
+    }
+    callback();
+  };
 
   const handleAuthSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -949,6 +1008,7 @@ function App() {
         setAuthEmail('');
         setAuthPassword('');
         setAuthUsername('');
+        setIsAuthModalOpen(false);
         triggerNotification(isLoginMode ? `👋 Welcome back, ${data.user.username}!` : `🎉 Account created! Welcome, ${data.user.username}!`);
       } else {
         setAuthError(data.error || 'Authentication failed. Please verify credentials.');
@@ -966,6 +1026,7 @@ function App() {
     setCompletedTopics({});
     setLabAchievements([]);
     setUserXp(0);
+    setIsProfileDropdownOpen(false);
     triggerNotification("🔒 Logged out successfully. Session terminated.");
   };
 
@@ -1106,255 +1167,290 @@ function App() {
   };
 
   // Upvote forum posts
-  const handleUpvotePost = async (postId) => {
-    let change = 0;
-    setDiscussionPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        const added = !post.voted;
-        change = added ? 1 : -1;
-        return {
-          ...post,
-          votes: added ? post.votes + 1 : post.votes - 1,
-          voted: added
-        };
+  const handleUpvotePost = (postId) => {
+    requireAuth(async () => {
+      let change = 0;
+      setDiscussionPosts(prev => prev.map(post => {
+        if (post.id === postId) {
+          const added = !post.voted;
+          change = added ? 1 : -1;
+          return {
+            ...post,
+            votes: added ? post.votes + 1 : post.votes - 1,
+            voted: added
+          };
+        }
+        return post;
+      }));
+      
+      try {
+        await fetch(`/api/forum/post/${postId}/vote`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ change })
+        });
+      } catch (err) {
+        console.error('Error syncing vote:', err);
       }
-      return post;
-    }));
-    
-    try {
-      await fetch(`/api/forum/post/${postId}/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ change })
-      });
-    } catch (err) {
-      console.error('Error syncing vote:', err);
-    }
-    
-    triggerNotification(change > 0 ? "👍 Post upvoted!" : "Removed upvote");
+      
+      triggerNotification(change > 0 ? "👍 Post upvoted!" : "Removed upvote");
+    });
   };
 
   // Create new Forum Post
-  const handleCreateForumPost = async () => {
-    if (!forumNewPostTitle.trim() || !forumNewPostContent.trim()) {
-      triggerNotification("⚠️ Please fill in all fields to publish.");
-      return;
-    }
-
-    try {
-      const res = await fetch('/api/forum/post', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: forumNewPostTitle,
-          category: forumNewPostCategory,
-          content: forumNewPostContent
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setDiscussionPosts(prev => [data.post, ...prev]);
-      } else {
-        const newPost = {
-          id: Date.now(),
-          title: forumNewPostTitle,
-          author: "mgore (You)",
-          avatar: "M",
-          category: forumNewPostCategory,
-          time: "Just now",
-          content: forumNewPostContent,
-          votes: 1,
-          voted: true,
-          replies: []
-        };
-        setDiscussionPosts(prev => [newPost, ...prev]);
+  const handleCreateForumPost = () => {
+    requireAuth(async () => {
+      if (!forumNewPostTitle.trim() || !forumNewPostContent.trim()) {
+        triggerNotification("⚠️ Please fill in all fields to publish.");
+        return;
       }
-    } catch (err) {
-      console.error('Error creating post:', err);
-    }
 
-    setIsNewPostModalOpen(false);
-    setForumNewPostTitle('');
-    setForumNewPostContent('');
-    updateUserXp(30);
-    triggerNotification("🎉 Question published to Q&A Board! +30 XP!");
+      try {
+        const res = await fetch('/api/forum/post', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title: forumNewPostTitle,
+            category: forumNewPostCategory,
+            content: forumNewPostContent
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setDiscussionPosts(prev => [data.post, ...prev]);
+        } else {
+          const newPost = {
+            id: Date.now(),
+            title: forumNewPostTitle,
+            author: "mgore (You)",
+            avatar: "M",
+            category: forumNewPostCategory,
+            time: "Just now",
+            content: forumNewPostContent,
+            votes: 1,
+            voted: true,
+            replies: []
+          };
+          setDiscussionPosts(prev => [newPost, ...prev]);
+        }
+      } catch (err) {
+        console.error('Error creating post:', err);
+      }
+
+      setIsNewPostModalOpen(false);
+      setForumNewPostTitle('');
+      setForumNewPostContent('');
+      updateUserXp(30);
+      triggerNotification("🎉 Question published to Q&A Board! +30 XP!");
+    });
   };
 
   // Reply to Forum Thread
-  const handleSubmitForumReply = async () => {
-    if (!newReplyText.trim()) return;
+  const handleSubmitForumReply = () => {
+    requireAuth(async () => {
+      if (!newReplyText.trim()) return;
 
-    try {
-      const res = await fetch(`/api/forum/post/${selectedPost.id}/reply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newReplyText })
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        const updatedPost = {
-          ...selectedPost,
-          replies: [...selectedPost.replies, data.reply]
-        };
-        setDiscussionPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
-        setSelectedPost(updatedPost);
-      } else {
-        const newReply = {
-          author: "mgore (You)",
-          avatar: "M",
-          content: newReplyText,
-          time: "Just now"
-        };
-        const updatedPost = {
-          ...selectedPost,
-          replies: [...selectedPost.replies, newReply]
-        };
-        setDiscussionPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
-        setSelectedPost(updatedPost);
+      try {
+        const res = await fetch(`/api/forum/post/${selectedPost.id}/reply`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ content: newReplyText })
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          const updatedPost = {
+            ...selectedPost,
+            replies: [...selectedPost.replies, data.reply]
+          };
+          setDiscussionPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
+          setSelectedPost(updatedPost);
+        } else {
+          const newReply = {
+            author: "mgore (You)",
+            avatar: "M",
+            content: newReplyText,
+            time: "Just now"
+          };
+          const updatedPost = {
+            ...selectedPost,
+            replies: [...selectedPost.replies, newReply]
+          };
+          setDiscussionPosts(prev => prev.map(p => p.id === selectedPost.id ? updatedPost : p));
+          setSelectedPost(updatedPost);
+        }
+      } catch (err) {
+        console.error('Error submitting reply:', err);
       }
-    } catch (err) {
-      console.error('Error submitting reply:', err);
-    }
 
-    setNewReplyText('');
-    updateUserXp(15);
-    triggerNotification("💬 Reply published to thread! +15 XP!");
+      setNewReplyText('');
+      updateUserXp(15);
+      triggerNotification("💬 Reply published to thread! +15 XP!");
+    });
   };
 
   // Join a Virtual Study Room
-  const handleJoinRoom = async (roomId) => {
-    const roomObj = studyRoomsList.find(r => r.id === roomId);
-    if (!roomObj) return;
+  const handleJoinRoom = (roomId) => {
+    requireAuth(async () => {
+      const roomObj = studyRoomsList.find(r => r.id === roomId);
+      if (!roomObj) return;
 
-    setJoinedRoomId(roomId);
-    
-    try {
-      const res = await fetch(`/api/study/rooms/${roomId}/messages`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.length > 0) {
-          setStudyMessages(data.map(m => ({
-            author: m.author,
-            text: m.text,
-            time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          })));
-        } else {
-          const initialMsgs = [
-            { author: roomObj.peers[0], text: "Hey! Glad you could join. I am tracing lists, dict lookups, and file reading codes right now." },
-            { author: roomObj.peers[1] || 'Alice', text: "Welcome! Setting up my local virtual environment, let me know if anyone needs the pip config command." }
-          ];
-          
-          const loadedMsgs = [
-            { author: 'System', text: `✨ You joined the room "${roomObj.name}". Active peers: ${roomObj.peers.join(', ')}.`, time: '10:30 AM' }
-          ];
+      setJoinedRoomId(roomId);
+      
+      try {
+        const res = await fetch(`/api/study/rooms/${roomId}/messages`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.length > 0) {
+            setStudyMessages(data.map(m => ({
+              author: m.author,
+              text: m.text,
+              time: new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            })));
+          } else {
+            const initialMsgs = [
+              { author: roomObj.peers[0], text: "Hey! Glad you could join. I am tracing lists, dict lookups, and file reading codes right now." },
+              { author: roomObj.peers[1] || 'Alice', text: "Welcome! Setting up my local virtual environment, let me know if anyone needs the pip config command." }
+            ];
+            
+            const loadedMsgs = [
+              { author: 'System', text: `✨ You joined the room "${roomObj.name}". Active peers: ${roomObj.peers.join(', ')}.`, time: '10:30 AM' }
+            ];
 
-          for (const msg of initialMsgs) {
-            const saveRes = await fetch(`/api/study/rooms/${roomId}/messages`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(msg)
-            });
-            if (saveRes.ok) {
-              const saved = await saveRes.json();
-              loadedMsgs.push({
-                author: saved.author,
-                text: saved.text,
-                time: new Date(saved.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            for (const msg of initialMsgs) {
+              const saveRes = await fetch(`/api/study/rooms/${roomId}/messages`, {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(msg)
               });
+              if (saveRes.ok) {
+                const saved = await saveRes.json();
+                loadedMsgs.push({
+                  author: saved.author,
+                  text: saved.text,
+                  time: new Date(saved.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+              }
             }
+            setStudyMessages(loadedMsgs);
           }
-          setStudyMessages(loadedMsgs);
         }
+      } catch (err) {
+        console.error('Error fetching room messages:', err);
+        setStudyMessages([
+          { author: 'System', text: `✨ You joined the room "${roomObj.name}". Active peers: ${roomObj.peers.join(', ')}.`, time: '10:30 AM' },
+          { author: roomObj.peers[0], text: "Hey! Glad you could join. I am tracing lists, dict lookups, and file reading codes right now.", time: '10:31 AM' },
+          { author: roomObj.peers[1] || 'Alice', text: "Welcome! Setting up my local virtual environment, let me know if anyone needs the pip config command.", time: '10:32 AM' }
+        ]);
       }
-    } catch (err) {
-      console.error('Error fetching room messages:', err);
-      setStudyMessages([
-        { author: 'System', text: `✨ You joined the room "${roomObj.name}". Active peers: ${roomObj.peers.join(', ')}.`, time: '10:30 AM' },
-        { author: roomObj.peers[0], text: "Hey! Glad you could join. I am tracing lists, dict lookups, and file reading codes right now.", time: '10:31 AM' },
-        { author: roomObj.peers[1] || 'Alice', text: "Welcome! Setting up my local virtual environment, let me know if anyone needs the pip config command.", time: '10:32 AM' }
-      ]);
-    }
+    });
   };
 
   // Send Study Room Peer Chat Message
-  const handleSendPeerMessage = async () => {
-    if (!peerChatInput.trim()) return;
+  const handleSendPeerMessage = () => {
+    requireAuth(async () => {
+      if (!peerChatInput.trim()) return;
 
-    const text = peerChatInput;
-    setPeerChatInput('');
+      const text = peerChatInput;
+      setPeerChatInput('');
 
-    const newUserMsg = { author: 'mgore (You)', text: text, time: 'Just now' };
-    setStudyMessages(prev => [...prev, newUserMsg]);
-
-    try {
-      await fetch(`/api/study/rooms/${joinedRoomId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author: 'mgore (You)', text: text })
-      });
-    } catch (err) {
-      console.error('Error saving study room message:', err);
-    }
-
-    setTimeout(async () => {
-      const peerReplies = [
-        "That makes total sense! Let's run a test in the Sandbox compiler.",
-        "Oh neat! Adding that to my notes, thank you for sharing.",
-        "Excellent approach! We are leveling up fast on this roadmap.",
-        "Agreed. Let's solve the next textbook coding assignment."
-      ];
-      const randomPeer = studyRoomsList.find(r => r.id === joinedRoomId)?.peers[0] || 'Alice';
-      const randomMsg = peerReplies[Math.floor(Math.random() * peerReplies.length)];
+      const newUserMsg = { author: 'mgore (You)', text: text, time: 'Just now' };
+      setStudyMessages(prev => [...prev, newUserMsg]);
 
       try {
-        const res = await fetch(`/api/study/rooms/${joinedRoomId}/messages`, {
+        await fetch(`/api/study/rooms/${joinedRoomId}/messages`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ author: randomPeer, text: randomMsg })
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ author: 'mgore (You)', text: text })
         });
-        if (res.ok) {
-          const saved = await res.json();
-          setStudyMessages(prev => [...prev, {
-            author: saved.author,
-            text: saved.text,
-            time: new Date(saved.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }]);
-        } else {
+      } catch (err) {
+        console.error('Error saving study room message:', err);
+      }
+
+      setTimeout(async () => {
+        const peerReplies = [
+          "That makes total sense! Let's run a test in the Sandbox compiler.",
+          "Oh neat! Adding that to my notes, thank you for sharing.",
+          "Excellent approach! We are leveling up fast on this roadmap.",
+          "Agreed. Let's solve the next textbook coding assignment."
+        ];
+        const randomPeer = studyRoomsList.find(r => r.id === joinedRoomId)?.peers[0] || 'Alice';
+        const randomMsg = peerReplies[Math.floor(Math.random() * peerReplies.length)];
+
+        try {
+          const res = await fetch(`/api/study/rooms/${joinedRoomId}/messages`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+               'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ author: randomPeer, text: randomMsg })
+          });
+          if (res.ok) {
+            const saved = await res.json();
+            setStudyMessages(prev => [...prev, {
+              author: saved.author,
+              text: saved.text,
+              time: new Date(saved.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }]);
+          } else {
+            setStudyMessages(prev => [...prev, { author: randomPeer, text: randomMsg, time: 'Just now' }]);
+          }
+        } catch (err) {
           setStudyMessages(prev => [...prev, { author: randomPeer, text: randomMsg, time: 'Just now' }]);
         }
-      } catch (err) {
-        setStudyMessages(prev => [...prev, { author: randomPeer, text: randomMsg, time: 'Just now' }]);
-      }
-      
-      updateUserXp(5);
-    }, 1000);
+        
+        updateUserXp(5);
+      }, 1000);
+    });
   };
 
   // Book slot with real-time Expert Mentor
-  const handleBookSlot = async () => {
-    if (!bookingDateSlot) {
-      triggerNotification("⚠️ Please pick an available calendar slot.");
-      return;
-    }
+  const handleBookSlot = () => {
+    requireAuth(async () => {
+      if (!bookingDateSlot) {
+        triggerNotification("⚠️ Please pick an available calendar slot.");
+        return;
+      }
 
-    setIsBookingSuccess(true);
-    updateUserXp(40);
-    triggerNotification(`📅 Consulting session booked with ${selectedExpert.name}! +40 XP!`);
+      setIsBookingSuccess(true);
+      updateUserXp(40);
+      triggerNotification(`📅 Consulting session booked with ${selectedExpert.name}! +40 XP!`);
 
-    try {
-      await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expertId: selectedExpert.id,
-          expertName: selectedExpert.name,
-          slot: bookingDateSlot
-        })
-      });
-    } catch (err) {
-      console.error('Error creating booking:', err);
-    }
+      try {
+        await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            expertId: selectedExpert.id,
+            expertName: selectedExpert.name,
+            slot: bookingDateSlot
+          })
+        });
+      } catch (err) {
+        console.error('Error creating booking:', err);
+      }
+    });
   };
 
 
@@ -1439,30 +1535,35 @@ function App() {
   };
 
   // Toggle topic completion
-  const handleToggleTopic = async (topicId, topicTitle) => {
-    const isCompleted = !!completedTopics[topicId];
-    const newCompleted = !isCompleted;
-    setCompletedTopics({
-      ...completedTopics,
-      [topicId]: newCompleted
-    });
-
-    try {
-      await fetch('/api/user/completed-topic', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topicId, topicTitle, isCompleted: newCompleted })
+  const handleToggleTopic = (topicId, topicTitle) => {
+    requireAuth(async () => {
+      const isCompleted = !!completedTopics[topicId];
+      const newCompleted = !isCompleted;
+      setCompletedTopics({
+        ...completedTopics,
+        [topicId]: newCompleted
       });
-    } catch (err) {
-      console.error('Error syncing completed topic:', err);
-    }
 
-    if (newCompleted) {
-      updateUserXp(50);
-      triggerNotification(`🎉 Completed: "${topicTitle}"! +50 XP Awarded!`);
-    } else {
-      updateUserXp(-50);
-    }
+      try {
+        await fetch('/api/user/completed-topic', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ topicId, topicTitle, isCompleted: newCompleted })
+        });
+      } catch (err) {
+        console.error('Error syncing completed topic:', err);
+      }
+
+      if (newCompleted) {
+        updateUserXp(50);
+        triggerNotification(`🎉 Completed: "${topicTitle}"! +50 XP Awarded!`);
+      } else {
+        updateUserXp(-50);
+      }
+    });
   };
 
   // Execute Code Simulator
@@ -1652,84 +1753,6 @@ function App() {
     return Math.round((completed / topics.length) * 100);
   };
 
-  if (!token || !user) {
-    return (
-      <div className="auth-overlay">
-        <div className="neural-grid"></div>
-        <div className="auth-container">
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-            <div className="brand-logo" style={{ width: '56px', height: '56px', fontSize: '1.8rem' }}>AΩ</div>
-          </div>
-          <h2 className="auth-title">
-            {isLoginMode ? 'Welcome back to A2Z Learn' : 'Create your A2Z Account'}
-          </h2>
-          <p className="auth-subtitle">
-            {isLoginMode ? 'Sign in to access your persistent roadmaps & sandbox labs.' : 'Open an account to track syllabus progress, bookings, & chats.'}
-          </p>
-
-          {authError && <div className="auth-error">{authError}</div>}
-
-          <form onSubmit={handleAuthSubmit}>
-            {!isLoginMode && (
-              <div className="auth-form-group">
-                <label className="auth-label">Username</label>
-                <input 
-                  type="text" 
-                  className="auth-input" 
-                  placeholder="e.g. mgore" 
-                  value={authUsername}
-                  onChange={(e) => setAuthUsername(e.target.value)}
-                  required
-                />
-              </div>
-            )}
-
-            <div className="auth-form-group">
-              <label className="auth-label">Email Address</label>
-              <input 
-                type="email" 
-                className="auth-input" 
-                placeholder="e.g. mgore@a2z.com" 
-                value={authEmail}
-                onChange={(e) => setAuthEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="auth-form-group">
-              <label className="auth-label">Password</label>
-              <input 
-                type="password" 
-                className="auth-input" 
-                placeholder="••••••••" 
-                value={authPassword}
-                onChange={(e) => setAuthPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <button type="submit" className="auth-submit-btn">
-              {isLoginMode ? 'Sign In to Workspace' : 'Open My Account'}
-            </button>
-          </form>
-
-          <p className="auth-toggle-text">
-            {isLoginMode ? "New to A2Z Connect Hub?" : "Already have an account?"}
-            <button 
-              className="auth-toggle-btn"
-              onClick={() => {
-                setIsLoginMode(!isLoginMode);
-                setAuthError('');
-              }}
-            >
-              {isLoginMode ? 'Open Account' : 'Sign In'}
-            </button>
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="neural-grid"></div>
@@ -1794,25 +1817,68 @@ function App() {
           </button>
         </nav>
 
-        {/* Dynamic User Statistics Card Widget & Logout */}
+        {/* Dynamic User Statistics Card Widget & Logout / Login */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div className="user-profile-widget">
-            <div className="xp-bar-container">
-              <div className="xp-label">
-                <span>{user ? user.username.toUpperCase() : 'LEARNER'}</span>
-                <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>{userXp} XP</span>
+          {!token || !user ? (
+            <button className="header-login-btn" onClick={() => { setIsAuthModalOpen(true); setIsLoginMode(true); }}>
+              <Lock size={14} />
+              Sign In
+            </button>
+          ) : (
+            <div ref={dropdownRef} style={{ display: 'flex', alignItems: 'center', gap: '1rem', position: 'relative' }}>
+              <div className="user-profile-widget">
+                <div className="xp-bar-container">
+                  <div className="xp-label">
+                    <span>{user.username.toUpperCase()}</span>
+                    <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>{userXp} XP</span>
+                  </div>
+                  <div className="xp-progress-bg">
+                    <div className="xp-progress-fill" style={{ width: `${userXp % 100}%` }}></div>
+                  </div>
+                </div>
+                <div 
+                  className="avatar-circle" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                >
+                  {user.avatar || user.username.charAt(0).toUpperCase()}
+                </div>
               </div>
-              <div className="xp-progress-bg">
-                <div className="xp-progress-fill" style={{ width: `${userXp % 100}%` }}></div>
-              </div>
+
+              {isProfileDropdownOpen && (
+                <div className="profile-dropdown-card">
+                  <div className="profile-dropdown-header">
+                    <p className="profile-dropdown-name">{user.username}</p>
+                    <p className="profile-dropdown-email">{user.email}</p>
+                  </div>
+                  <button className="profile-dropdown-item" onClick={() => {
+                    triggerNotification(`👤 Profile: ${user.username} (${user.email})`);
+                    setIsProfileDropdownOpen(false);
+                  }}>
+                    Profile
+                  </button>
+                  <button className="profile-dropdown-item" onClick={() => {
+                    triggerNotification("⚙️ Secure Fallback System Status: Operational");
+                    setIsProfileDropdownOpen(false);
+                  }}>
+                    Setting
+                  </button>
+                  <button className="profile-dropdown-item" onClick={() => {
+                    handleTabChange('roadmap');
+                    setIsProfileDropdownOpen(false);
+                  }}>
+                    My Learning Path
+                  </button>
+                  <button className="profile-dropdown-item danger" onClick={() => {
+                    handleLogout();
+                    setIsProfileDropdownOpen(false);
+                  }}>
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="avatar-circle">{user ? user.username.charAt(0).toUpperCase() : 'M'}</div>
-          </div>
-          
-          <button className="logout-nav-btn" onClick={handleLogout}>
-            <Lock size={14} />
-            Log Out
-          </button>
+          )}
         </div>
       </header>
 
@@ -3476,6 +3542,83 @@ function App() {
           </div>
         );
       })()}
+
+      {isAuthModalOpen && (
+        <div className="auth-overlay" onClick={(e) => { if (e.target.classList.contains('auth-overlay')) setIsAuthModalOpen(false); }}>
+          <div className="neural-grid"></div>
+          <div className="auth-container">
+            <button className="auth-modal-close-btn" onClick={() => setIsAuthModalOpen(false)}>✕</button>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+              <div className="brand-logo" style={{ width: '56px', height: '56px', fontSize: '1.8rem' }}>AΩ</div>
+            </div>
+            <h2 className="auth-title">
+              {isLoginMode ? 'Welcome back to A2Z Learn' : 'Create your A2Z Account'}
+            </h2>
+            <p className="auth-subtitle">
+              {isLoginMode ? 'Sign in to access your persistent roadmaps & sandbox labs.' : 'Open an account to track syllabus progress, bookings, & chats.'}
+            </p>
+
+            {authError && <div className="auth-error">{authError}</div>}
+
+            <form onSubmit={handleAuthSubmit}>
+              {!isLoginMode && (
+                <div className="auth-form-group">
+                  <label className="auth-label">Username</label>
+                  <input 
+                    type="text" 
+                    className="auth-input" 
+                    placeholder="e.g. mgore" 
+                    value={authUsername}
+                    onChange={(e) => setAuthUsername(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="auth-form-group">
+                <label className="auth-label">Email Address</label>
+                <input 
+                  type="email" 
+                  className="auth-input" 
+                  placeholder="e.g. mgore@a2z.com" 
+                  value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="auth-form-group">
+                <label className="auth-label">Password</label>
+                <input 
+                  type="password" 
+                  className="auth-input" 
+                  placeholder="••••••••" 
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <button type="submit" className="auth-submit-btn">
+                {isLoginMode ? 'Sign In to Workspace' : 'Open My Account'}
+              </button>
+            </form>
+
+            <p className="auth-toggle-text">
+              {isLoginMode ? "New to A2Z Connect Hub?" : "Already have an account?"}
+              <button 
+                className="auth-toggle-btn"
+                onClick={() => {
+                  setIsLoginMode(!isLoginMode);
+                  setAuthError('');
+                }}
+              >
+                {isLoginMode ? 'Open Account' : 'Sign In'}
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 }
