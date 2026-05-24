@@ -2822,3 +2822,236 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ====================================================
+   HIGH-FIDELITY MOBILE & TABLET RESPONSIVE STYLING
+   ==================================================== */
+
+@media (max-width: 1024px) {
+  .main-wrapper {
+    padding: 1.5rem;
+  }
+  .roadmap-container {
+    grid-template-columns: 1fr;
+  }
+  .career-grid-layout {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .splitscreen-workspace {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .lab-panel-left, .lab-panel-right {
+    height: 480px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Navigation Bar Responsiveness */
+  .app-header {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+    text-align: center;
+  }
+  .brand-section {
+    justify-content: center;
+  }
+  .nav-links {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .nav-item {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+  }
+  .user-profile-widget {
+    justify-content: center;
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+  .xp-progress-bg {
+    width: 100px;
+  }
+
+  /* Hero Section */
+  .welcome-hero {
+    padding: 1.5rem 0;
+  }
+  .welcome-title {
+    font-size: 2.2rem !important;
+    line-height: 1.2;
+  }
+  .welcome-subtitle {
+    font-size: 0.95rem !important;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Filters Toolbar */
+  .search-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .search-box {
+    max-width: 100%;
+  }
+  .filter-group {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 0.5rem;
+    display: flex;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .filter-btn {
+    flex-shrink: 0;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* Grid Layouts */
+  .roles-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .role-card {
+    padding: 1.5rem;
+  }
+
+  /* Roadmap Section */
+  .roadmap-header-card {
+    padding: 1.25rem;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .roadmap-action-btns {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .roadmap-action-btns button {
+    width: 100%;
+    justify-content: center;
+  }
+  .roadmap-step-header {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .step-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Highly Optimized Roadmap Topic Row */
+  .roadmap-topic-row {
+    grid-template-columns: 35px 1fr;
+    gap: 0.5rem;
+    padding: 1rem 0.5rem;
+  }
+  .topic-badge-col {
+    grid-column: 2;
+    justify-content: flex-start !important;
+    margin-top: 0.4rem;
+  }
+  .action-col {
+    grid-column: 2;
+    justify-content: flex-start !important;
+    margin-top: 0.4rem;
+  }
+
+  /* Collaborative Hub / Forum */
+  .connect-welcome-banner {
+    padding: 1.25rem;
+  }
+  .connect-welcome-banner h2 {
+    font-size: 1.4rem;
+  }
+  .connect-welcome-banner p {
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+  .connect-tabs-row {
+    justify-content: center;
+  }
+  .connect-tab-btn {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.8rem;
+  }
+
+  /* Chat Workspaces */
+  .connect-chat-workspace {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+  .chat-mentors-sidebar {
+    max-height: 250px;
+    overflow-y: auto;
+  }
+  .chat-bubbles-scrollarea {
+    max-height: 320px;
+  }
+  .chat-bubble-row {
+    max-width: 90%;
+  }
+
+  /* Discussions Forums */
+  .forum-toolbar-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .forum-category-filters {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 0.25rem;
+    display: flex;
+    white-space: nowrap;
+  }
+  .forum-filter-chip {
+    flex-shrink: 0;
+  }
+  .forum-thread-card {
+    grid-template-columns: 40px 1fr;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  .thread-replies-column {
+    grid-column: 2;
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  /* Modal & Overlay Overlay Screens */
+  .post-detail-overlay-content {
+    width: 100%;
+    height: 95vh;
+  }
+  .original-post-body {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  /* Co-working Study Lounges */
+  .study-rooms-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .joined-study-room-pane {
+    height: 420px;
+  }
+
+  /* Experts 1-on-1 Schedulers */
+  .experts-booking-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
