@@ -2094,7 +2094,7 @@ function App() {
                                       onClick={(e) => { e.stopPropagation(); openJavatpointArticle(topic.id); }}
                                       style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontSize: '0.75rem', fontWeight: 600, padding: 0, marginTop: '0.25rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', outline: 'none' }}
                                     >
-                                      <FileText size={12} /> Read Javatpoint Conceptual Guide
+                                      <FileText size={12} /> Doc Read
                                     </button>
                                   )}
                                 </div>
