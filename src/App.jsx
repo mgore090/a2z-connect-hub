@@ -43,220 +43,228 @@ import { rolesData, labsData } from './data/rolesData';
 // Static Javatpoint Mock Articles Database for quick study reads
 const javatpointArticles = {
   "python-basics-syntax": {
-    title: "Python Basic Syntax & Foundations",
-    intro: "Master the foundational components of Python: variable declarations, standard data types, mathematical operators, comparisons, and logical truth evaluations that serve as the computational building blocks of machine learning workflows.",
+    title: "Python Basic Syntax & Foundations (GeeksforGeeks Edition)",
+    intro: "Learn Python's foundation blocks. Understand dynamically-typed variables, core primitive types, math equations, comparison evaluations, and logical truth conditions.",
     sections: [
       {
-        title: "1. Variables & Primary Data Types",
-        content: "• Variables: Instantly created on assignment using '=' without declaring types (e.g., `x = 100`).\n• Integers & Floats: `int` represents positive/negative whole numbers (e.g., `epochs = 50`), while `float` represents decimal precision values crucial for weights and learning rates (e.g., `loss = 0.045`).\n• Strings: Text streams defined using single or double quotes (e.g., `model_name = 'Gemini 3.5'`). Supports indexing and custom formats.\n• Booleans: Capitalized `True` or `False` values for checking states and training loops."
+        title: "1. Variables & Primary Data Types (int, float, str, bool)",
+        content: "• Variables Overview:\n  - Theory: Python utilizes dynamic typing (types are inferred at runtime). Variables are instantly declared on assignment using the '=' operator.\n  - Example:\n    x = 42\n\n• Integers & Floats:\n  - Theory: 'int' holds positive/negative whole numbers (e.g., 50). 'float' represents decimal accuracy (e.g., 0.045) crucial for metrics and ratios.\n  - Example:\n    age = 25  # int\n    learning_rate = 0.01  # float\n\n• Strings (Text Blocks):\n  - Theory: Immutable sequences of Unicode text defined using single, double, or triple quotes.\n  - Example:\n    username = 'mgore'  # str\n    description = \"\"\"Multi-line text\n    representing a paragraph.\"\"\"\n\n• Booleans (Logical States):\n  - Theory: Logical binary values represented exclusively as capitalized True or False.\n  - Example:\n    is_enrolled = True  # bool"
       },
       {
-        title: "2. Mathematical & Logic Operators",
-        content: "• Math Equations: Standard operators for calculations: addition (`+`), subtraction (`-`), multiplication (`*`), division (`/`), exponentiation (`**` for powers), and modulo (`%` for remainders).\n• Comparison Steps: Evaluate relationships between variables returning booleans: equal to (`==`), not equal (`!=`), greater than (`>`), and less than (`<`).\n• Logical Truth Testing: Combine comparisons using logical gates: `and` (both true), `or` (at least one true), and `not` (reverses state)."
+        title: "2. Mathematical, Comparison & Logical Operators",
+        content: "• Math Equations:\n  - Theory: Run calculations using standard symbols: addition (+), subtraction (-), multiplication (*), division (/), modulo for remainders (%), exponentiation for powers (**), and floor division (//).\n  - Example:\n    sum_val = 10 + 5\n    power_val = 2 ** 3  # 8\n\n• Comparison Steps:\n  - Theory: Inspect relationships between values, returning booleans: equal (==), not equal (!=), greater (>), less (<), greater-equal (>=), less-equal (<=).\n  - Example:\n    is_greater = 10 > 5  # True\n    is_equal = (4 == 5)  # False\n\n• Logical Truth Testing:\n  - Theory: Combine multiple comparisons using logical operators: 'and' (both True), 'or' (at least one True), and 'not' (inverts truth value).\n  - Example:\n    is_valid = (10 > 5) and not (3 == 4)"
       },
       {
         title: "🚀 Industrial Realtime Example",
-        content: "In financial forecasting engines, parameters are normalized using basic syntax. If transaction logs record raw currencies, floats scale values to decimal floats between 0 and 1, and logic operators check if anomalies exist: `if transaction_amount > threshold and not user.is_verified: block_card()`."
+        content: "In telemetry pipelines, incoming sensor payloads must be parsed and checked for safety limits:\n\n# Raw inputs from sensor A\nsensor_active = True  # bool\ntemp_celsius = 37.8  # float\nmax_threshold = 40.0  # float\n\n# Check if anomaly exists using logic operators\nis_overheating = sensor_active and (temp_celsius > max_threshold)\nprint(f\"Sensor alert status: {is_overheating}\")"
       }
     ],
     qa: [
-      { q: "Why are Python variables dynamically typed rather than statically declared?", a: "Python determines variable types at runtime (duck typing), allowing flexible assignments (e.g. changing x from integer to float) without verbose syntactic overhead, though developers utilize type hinting for production stability." }
+      { q: "What is the difference between dynamic typing and static typing?", a: "Dynamic typing determines variable types at runtime automatically based on the assigned value. Static typing requires declaring variable types explicitly in source code before execution." }
     ],
     youtube: "https://www.youtube.com/watch?v=rfscVS0vtbw"
   },
   "python-control-flow-loops": {
-    title: "Python Control Flow & Decision Loops",
-    intro: "Control execution threads dynamically. Guide your AI system using conditional branches and iterate efficiently through pipelines using sequence-driven loops.",
+    title: "Python Control Flow & Loops (GeeksforGeeks Edition)",
+    intro: "Control execution tracks in your code. Guide decisions using if-elif-else branches, and execute repeating loops (for, while) with exact control switches.",
     sections: [
       {
-        title: "1. Conditional Checks (if-elif-else)",
-        content: "• `if`: Checks a primary boolean condition. If True, executes its indented block.\n• `elif`: Evaluates subsequent checks sequentially if previous ones failed, avoiding nested loops.\n• `else`: Serves as the fallback default route if all preceding conditions evaluate to False."
+        title: "1. Conditional Decision Checks (if-elif-else)",
+        content: "• The 'if' Branch:\n  - Theory: Evaluates a primary conditional statement. If it resolves to True, the indented block of code is run.\n  - Example:\n    if temp > 30:\n        print(\"Hot\")\n\n• The 'elif' Choice:\n  - Theory: Evaluates a secondary check if all preceding statements evaluated to False. Prevents nested complexity.\n  - Example:\n    elif temp > 15:\n        print(\"Warm\")\n\n• The 'else' Fallback:\n  - Theory: The default backup block that triggers if all other conditions resolve to False.\n  - Example:\n    else:\n        print(\"Cold\")"
       },
       {
-        title: "2. Sequence Iteration (for & while Loops)",
-        content: "• `for` Loops: Iterate over iterable collections like lists, dictionaries, or `range(start, stop)` pools (e.g., `for epoch in range(10):`).\n• `while` Loops: Execute repeatedly as long as a state condition remains True. Must update condition variables to prevent infinite loops.\n• Loop Breaks: Use `break` to immediately exit the active loop, and `continue` to skip the remainder of the current iteration and jump to the next."
+        title: "2. Sequence Iteration & Loops (for, while, breaks)",
+        content: "• 'for' Sequence Loops:\n  - Theory: Iterates through elements in an iterable collection (like lists, strings, or ranges).\n  - Example:\n    for epoch in range(1, 4):\n        print(f\"Epoch: {epoch}\")\n\n• 'while' Conditional Loops:\n  - Theory: Repeats code execution as long as a designated condition remains True. Must update state to avoid infinite loops.\n  - Example:\n    count = 1\n    while count < 3:\n        print(count)\n        count += 1\n\n• Loop Control (break & continue):\n  - Theory: 'break' terminates the loop immediately. 'continue' skips the remainder of the current iteration and jumps to the next cycle.\n  - Example:\n    for val in range(10):\n        if val == 3:\n            continue # skip 3\n        if val == 5:\n            break # exit loop at 5"
       },
       {
         title: "🚀 Industrial Realtime Example",
-        content: "During deep network training, validation monitoring checks for overfitting. A `for` loop iterates through epochs, and inside it, an `if` block inspects validation loss: `if val_loss < best_loss: best_loss = val_loss; elif epochs_no_improve > patience: break` (implementing early stopping)."
+        content: "During machine learning training, an epoch loop monitors validation loss. If the loss converges, it triggers early stopping using control breaks:\n\nmin_loss = 0.05\nfor epoch in range(1, 100):\n    # Simulated validation loss\n    val_loss = 0.1 - (epoch * 0.01)\n    if val_loss <= min_loss:\n        print(f\"Target reached at epoch {epoch}! Stopping loop.\")\n        break"
       }
     ],
     qa: [
-      { q: "What is the difference between break and continue inside a training loop?", a: "A 'break' terminates the entire loop immediately, halting further epochs, whereas 'continue' skips only the remaining statements in the current epoch and starts the next epoch sequence." }
+      { q: "Why must loops have updates or control breaks in their blocks?", a: "Without a changing state condition or an explicit break statement, loops would run infinitely, consuming all CPU resources and hanging the application." }
     ],
     youtube: "https://www.youtube.com/watch?v=8aGhZQkoFbQ"
   },
   "python-functions-core": {
-    title: "Python Functions & Scope Dynamics",
-    intro: "Encapsulate logic into reusable blocks. Write clean, modular modular functions by defining signature inputs, default parameter fallbacks, and standard returns.",
+    title: "Python Functions & Scope Dynamics (GeeksforGeeks Edition)",
+    intro: "Structure your programs into clean, modular components. Learn function declarations, argument configurations, and outputs return values.",
     sections: [
       {
-        title: "1. Function Definition & Signature Structure",
-        content: "• Definition: Declared using the `def` keyword followed by a unique name and parentheses (e.g., `def train_step():`).\n• Input Parameters: Variables passed into the function inside signature brackets. Supports positional, keyword arguments, and default values (e.g., `learning_rate=0.01`).\n• Output Return Values: Uses the `return` statement to send computed results back to the caller. Returning multiple outputs returns them as a tuple pack."
+        title: "1. Function Definition & Parameter Inputs (def keyword)",
+        content: "• Function Signatures:\n  - Theory: Declared using the 'def' keyword followed by a unique function name and parentheses enclosing arguments.\n  - Example:\n    def calculate_tax(amount):\n        return amount * 0.15\n\n• Input Parameters & Default Fallbacks:\n  - Theory: Variables passed into the function. Supports positional arguments, keyword arguments, and default fallbacks.\n  - Example:\n    def train_model(epochs, learning_rate=0.01):\n        return f\"Trained {epochs} epochs with LR {learning_rate}\"\n    # Can call with default value:\n    train_model(epochs=10)\n    # Or override the default:\n    train_model(10, 0.05)"
+      },
+      {
+        title: "2. Output Return Values",
+        content: "• Returning Results:\n  - Theory: The 'return' keyword outputs calculated values back to the caller and exits the function block. If omitted, it defaults to returning None.\n  - Example:\n    def square(x):\n        return x * x\n\n• Multi-Value Returns (Tuple Packing):\n  - Theory: Return multiple values separated by commas. Python automatically packs them into a single immutable Tuple.\n  - Example:\n    def get_metrics():\n        loss = 0.23\n        accuracy = 0.94\n        return loss, accuracy  # returns (0.23, 0.94)\n    \n    # Unpacking returns:\n    l, acc = get_metrics()"
       },
       {
         title: "🚀 Industrial Realtime Example",
-        content: "Pre-trained vision services define standard inference functions: `def process_image(img_path, target_size=(224, 224))`. The function resizes the file internally and returns both the normalized tensor and classification logits back as a twin output pack."
+        content: "Building modular vision scaling utilities inside preprocessing scripts:\n\ndef scale_image(img_path, target_size=(224, 224), normalize=True):\n    print(f\"Scaling {img_path} to {target_size}...\")\n    scaled_status = True\n    return scaled_status, f\"Image normalized successfully\"\n\n# Execute function\nstatus, msg = scale_image(\"profile.jpg\", target_size=(128, 128))"
       }
     ],
     qa: [
-      { q: "How do default parameter arguments behave inside Python functions?", a: "Default arguments are evaluated once when the function is defined. It is a critical best practice to use immutable types (like None, integers, or strings) as default values rather than mutable lists to avoid state leakage." }
+      { q: "What does it mean that Python arguments are passed by object reference?", a: "If you pass a mutable object (like a list) into a function, changes inside the function mutate the original object. Immutable objects (like integers or strings) cannot be mutated." }
     ],
     youtube: "https://www.youtube.com/watch?v=ZDa-Z5JzLYM"
   },
   "python-data-structures": {
-    title: "Python Core Data Structures",
-    intro: "Learn how to store, structure, and manipulate data sequences. Master the critical differences between lists, dictionaries, tuples, and sets to handle complex model payloads.",
+    title: "Python Core Data Structures (GeeksforGeeks Edition)",
+    intro: "Master collection structures. Understand the key architectural differences between Lists, Dictionaries, Tuples, and Sets.",
     sections: [
       {
-        title: "1. Lists: Dynamic & Indexable Sequences",
-        content: "• Characteristics: Ordered, mutable collections defined with `[]`.\n• Indexing: Retrieve items using 0-based integers (e.g., `items[0]`). Supports negative indexing (e.g., `items[-1]`).\n• Slicing: Extract sub-ranges with `list[start:stop:step]` (e.g., `batch = samples[0:32]`).\n• Appending: Add new records to the end dynamically using `.append()` in $O(1)$ time."
+        title: "1. Lists: Mutable, Indexable Sequences",
+        content: "• Lists Overview:\n  - Theory: Ordered, mutable sequences defined with square brackets. Duplicates are allowed.\n  - Example:\n    items = [\"a\", \"b\", \"c\"]\n\n• Indexing items:\n  - Theory: Access items via 0-based index integers. Negative indices count from the end.\n  - Example:\n    first = items[0]  # \"a\"\n    last = items[-1]  # \"c\"\n\n• Slicing ranges:\n  - Theory: Extract sub-ranges using 'list[start:stop:step]'. The stop coordinate is non-inclusive.\n  - Example:\n    sub = items[0:2]  # [\"a\", \"b\"]\n\n• Appending elements:\n  - Theory: Grow lists dynamically using '.append(value)' in O(1) amortized time.\n  - Example:\n    items.append(\"d\")  # [\"a\", \"b\", \"c\", \"d\"]"
       },
       {
-        title: "2. Dictionaries & Mappings",
-        content: "• Characteristics: Unordered, mutable key-value lookup maps defined with `{}`.\n• Lookups: High-speed constant time $O(1)$ retrieval of values by their unique keys (e.g., `config['dropout']`).\n• Updates: Alter existing entries or insert new pairs instantly (e.g., `config['learning_rate'] = 0.05`)."
+        title: "2. Dictionaries: High-Speed Key-Value Mappings",
+        content: "• Dictionaries Overview:\n  - Theory: Unordered, mutable collections mapping unique keys to values. Powered by internal hash tables, offering constant-time O(1) performance.\n  - Example:\n    config = {\"lr\": 0.01, \"epochs\": 50}\n\n• Key-Value Mappings & Lookups:\n  - Theory: Extract values via brackets or using the safe '.get()' method to avoid exceptions if keys are absent.\n  - Example:\n    rate = config[\"lr\"]  # 0.01\n    dropout = config.get(\"dropout\", 0.5)  # returns fallback 0.5\n\n• Dictionary updates:\n  - Theory: Insert new pairs or alter existing records instantly using assignment selectors.\n  - Example:\n    config[\"lr\"] = 0.02\n    config[\"batch_size\"] = 32"
       },
       {
-        title: "3. Tuples & Sets",
-        content: "• Tuples: Ordered, immutable sequences defined with `()`. Once created, values cannot be changed, providing data packing protection for fixed constants (e.g., `dim = (1, 3, 224, 224)`).\n• Sets: Unordered collections of unique items defined with `{}`. Automatically filters out duplicates and supports set math (e.g., union `|`, intersection `&`, difference `-`)."
+        title: "3. Tuples & Sets: Immutable sequences and Unique Math",
+        content: "• Tuples (Fixed Sequences & Immutable Protection):\n  - Theory: Ordered, immutable sequences defined with parentheses. Once instantiated, they cannot be modified, protecting constant shapes and configurations from leakage.\n  - Example:\n    dimensions = (1920, 1080)  # Cannot append or alter elements\n\n• Data Packing & Unpacking:\n  - Theory: Easily pack coordinates and unpack them directly into distinct variables.\n  - Example:\n    w, h = dimensions\n\n• Sets (Unique Items & Set Math):\n  - Theory: Unordered collections of unique items. Automatically purges duplicate values.\n  - Example:\n    colors = {\"red\", \"blue\", \"red\"}  # results in {\"red\", \"blue\"}\n\n• Duplicate Removal & Set Math:\n  - Theory: Performs high-speed set operations: Union (|), Intersection (&), and Difference (-).\n  - Example:\n    set_a = {1, 2, 3}\n    set_b = {3, 4, 5}\n    overlap = set_a & set_b  # {3}"
       },
       {
         title: "🚀 Industrial Realtime Example",
-        content: "A RAG system parses document vocabularies. Unique words are saved inside a `set` to eliminate duplicate tokens instantly. Document metadata is indexed inside a `dictionary` for rapid lookup, and the final tensor coordinate shape is stored in a `tuple` to guarantee model config safety."
+        content: "Parsing a raw log feed into distinct datasets:\n\n# Input logs containing redundant entries\nraw_logins = [\"alice\", \"bob\", \"alice\", \"charlie\"]\n\n# Deduplicate unique usernames using a set\nunique_users = set(raw_logins)\n\n# Structure user configuration meta inside a dictionary with a shape tuple\nuser_registry = {\n    \"count\": len(unique_users),\n    \"active_users\": unique_users,\n    \"dimensions\": (len(raw_logins), len(unique_users))\n}"
       }
     ],
     qa: [
-      { q: "Why does searching a set or dictionary take O(1) time while a list takes O(N)?", a: "Sets and dictionaries utilize a hash table structure, converting keys/items directly to memory addresses via a hash function, whereas lists must be scanned sequentially from first to last element." }
+      { q: "Why is a lookup in a dictionary O(1) while a lookup in a list is O(N)?", a: "Dictionaries convert keys directly into memory addresses using a hash function, whereas lists must be scanned sequentially from first to last to find a match." }
     ],
     youtube: "https://www.youtube.com/watch?v=QUT1VHiLgI4"
   },
   "python-intermediate-core": {
-    title: "Python Intermediate Concepts",
-    intro: "Extend your skills into industrial software development. Learn file integrations, custom exception handling, list comprehensions, standard library modules, pip installers, and virtual environments.",
+    title: "Python Intermediate Concepts (GeeksforGeeks Edition)",
+    intro: "Learn enterprise-grade concepts. Master text file handling, try-except error blocks, list comprehensions, standard library packages, pip packages, and virtual environments.",
     sections: [
       {
         title: "1. File Handling & Stream Integration",
-        content: "• Reading Text: Load file lines safely utilizing the `with open('data.txt', 'r') as f:` context manager to auto-close streams.\n• Writing & Appending: Write clean outputs using mode `'w'` (overwrites file) or mode `'a'` (appends new text to the end)."
+        content: "• Reading Text:\n  - Theory: Open and parse text lines utilizing the 'with open()' context manager, which guarantees file system locks are released immediately upon block exit.\n  - Example:\n    with open(\"data.txt\", \"r\") as f:\n        content = f.read()\n\n• Writing Output & Appending Files:\n  - Theory: Mode 'w' overwrites target files completely. Mode 'a' appends text lines cleanly to the end of the existing file.\n  - Example:\n    with open(\"logs.txt\", \"w\") as f:\n        f.write(\"Initial line\\n\")\n    with open(\"logs.txt\", \"a\") as f:\n        f.write(\"Appended line\\n\")"
       },
       {
-        title: "2. Exception Error Handling",
-        content: "• `try-except`: Wrap risky code inside a `try` block and catch failure exceptions in `except` blocks to prevent app crashes.\n• Custom Errors: Inherit from the base `Exception` class to raise descriptive domain-specific errors (e.g., `raise ModelLoadError('Weights corrupted')`)."
+        title: "2. Exception Error Handling (try-except & Custom Errors)",
+        content: "• Try-Except Testing Blocks:\n  - Theory: Wrap risky calculations inside a 'try' block, and capture runtime errors inside 'except' statements to avoid application crashes.\n  - Example:\n    try:\n        res = 10 / 0\n    except ZeroDivisionError as e:\n        print(f\"Handled division issue: {e}\")\n\n• Raising Custom Exceptions:\n  - Theory: Create descriptive domain-specific error classes by inheriting from the base 'Exception' class to enforce pipeline integrity.\n  - Example:\n    class DataCorruptedError(Exception): pass\n    \n    # Trigger exception:\n    raise DataCorruptedError(\"Inconsistent dimensions found\")"
       },
       {
-        title: "3. Comprehensions & Fast Collections",
-        content: "• Comprehensions: Compact, high-performance syntax to generate lists or dictionaries in a single loop line (e.g., `squares = [x**2 for x in range(10) if x % 2 == 0]`)."
+        title: "3. Comprehensions (List, Dict, & Fast Generation)",
+        content: "• List Comprehensions:\n  - Theory: Compact, expressive, and optimized syntax to instantiate transformed lists in a single loop line.\n  - Example:\n    squares = [x**2 for x in range(1, 6)]  # [1, 4, 9, 16, 25]\n\n• Dictionary Comprehensions & Compression:\n  - Theory: Generates lookups instantly mapping keys directly to calculations.\n  - Example:\n    squares_dict = {x: x**2 for x in range(1, 4)}  # {1: 1, 2: 4, 3: 9}\n\n• Conditional Filters inside Comprehensions:\n  - Theory: Integrate 'if' statements to filter elements during generation.\n  - Example:\n    even_squares = [x**2 for x in range(10) if x % 2 == 0]"
       },
       {
-        title: "4. Packages & Virtual Environments",
-        content: "• Modules: Import tools from Python's standard library (e.g., `import os, sys, math`).\n• Pip & Virtualenvs: Use `pip install` to download third-party dependencies from PyPI, and deploy virtual environments (`python -m venv venv`) to isolate project configurations."
+        title: "4. Modules, Packages, Pip & Virtual Environments",
+        content: "• Standard Library Imports:\n  - Theory: Import built-in utility packages (like os, sys, math, json, or datetime) to leverage pre-compiled C-speed modules.\n  - Example:\n    import os\n    import math\n    val = math.sqrt(64)  # 8.0\n\n• Pip Installer Tool & PyPI:\n  - Theory: Use 'pip install <package>' in the terminal to download third-party community packages from the Python Package Index.\n  - Example:\n    # Terminal command:\n    # pip install requests pandas openpyxl\n\n• Virtual Environments (venv):\n  - Theory: Isolate project setups. Creating a virtual environment ensures different projects do not suffer from conflicting library dependencies.\n  - Example:\n    # Terminal commands:\n    # python -m venv venv\n    # venv\\Scripts\\activate (Windows)"
       },
       {
         title: "🚀 Industrial Realtime Example",
-        content: "Robust ML pipelines process datasets inside standard folders. A script attempts to open a raw CSV: if the file is missing, it catches `FileNotFoundError` and logs a default. It uses list comprehensions to sanitize column strings and standard `os` modules to archive older files."
+        content: "Ingesting configuration data safely with File and Error checks:\n\nimport json\nimport os\n\ndef load_config(path=\"config.json\"):\n    try:\n        if not os.path.exists(path):\n            raise FileNotFoundError(f\"Target {path} missing\")\n        with open(path, \"r\") as f:\n            return json.load(f)\n    except FileNotFoundError as e:\n        print(f\"Warning: {e}. Loading defaults.\")\n        return {\"learning_rate\": 0.01, \"batch\": 32}\n\nconfig = load_config()"
       }
     ],
     qa: [
-      { q: "Why is a 'with' block preferred for opening files in Python?", a: "The 'with' statement acts as a context manager that guarantees system resources and file descriptors are closed immediately upon block exit, even if exceptions are raised inside the block." }
+      { q: "Why should we avoid generic exceptions like 'except Exception:' in production?", a: "Generic exceptions catch all errors (including coding syntax typos or system signals), making it extremely difficult to isolate bugs and debug code paths." }
     ],
     youtube: "https://www.youtube.com/watch?v=vmEHCJof1kU"
   },
   "python-specialized-oop": {
-    title: "Python Object-Oriented Coding Path",
-    intro: "Learn to build reusable, enterprise-grade architectures using classes, object instantiations, encapsulation, and code inheritance models.",
+    title: "Python Object-Oriented Specialist (GeeksforGeeks Edition)",
+    intro: "Learn to design modular, scalable backend frameworks. Master classes, object instances, constructor scopes, encapsulation, and code inheritance models.",
     sections: [
       {
-        title: "1. Class Templates & Constructor Methods",
-        content: "• Class Blueprints: Created using the `class` keyword (e.g., `class NeuralLayer:`).\n• Constructor (`__init__`): Magic method that runs automatically when creating object instances. Initializes internal attributes using the `self` pointer."
+        title: "1. Class Templates & Constructor Scopes",
+        content: "• Classes (Templates & Blueprints):\n  - Theory: A class is a custom blueprint that clusters data attributes and functional behaviors into a unified package.\n  - Example:\n    class ModelParameters:\n        pass\n\n• Constructors & Attributes (the __init__ method):\n  - Theory: A magic constructor method that executes automatically upon object instantiation. It defines instance attributes using the 'self' pointer.\n  - Example:\n    class NeuralLayer:\n        def __init__(self, in_nodes, out_nodes):\n            self.in_nodes = in_nodes\n            self.out_nodes = out_nodes\n            self.weights = 0.05  # instance attribute"
       },
       {
-        title: "2. Object Instantiation & Inheritance",
-        content: "• Instantiation: Create distinct objects (e.g., `my_layer = NeuralLayer(64, 32)`).\n• Code Inheritance: Create child classes that inherit all methods from a parent class, allowing overrides to implement specialized logic."
+        title: "2. Object Instantiation & Method Invocations",
+        content: "• Instantiation (Creating Distinct Instances):\n  - Theory: Allocates unique memory space to construct a real object from the class template.\n  - Example:\n    layer1 = NeuralLayer(64, 32)\n    layer2 = NeuralLayer(32, 10)\n\n• Method Invocations:\n  - Theory: Calling standard methods defined inside classes. Methods always receive the calling instance pointer as their first parameter ('self').\n  - Example:\n    class NeuralLayer:\n        def __init__(self, in_nodes, out_nodes):\n            self.in_nodes = in_nodes\n            self.out_nodes = out_nodes\n        def compute_dims(self):\n            return self.in_nodes * self.out_nodes\n    \n    layer = NeuralLayer(10, 5)\n    size = layer.compute_dims()  # returns 50"
+      },
+      {
+        title: "3. Class Inheritance & Method Overriding",
+        content: "• Inheritance (Parent Class vs Child Class):\n  - Theory: Promotes reuse by allowing child classes to inherit attributes and methods from base parent classes.\n  - Example:\n    class Layer:\n        def __init__(self, name):\n            self.name = name\n        def show(self):\n            return f\"Layer: {self.name}\"\n            \n    class DenseLayer(Layer):  # inherits Layer\n        pass\n\n• Method Overriding:\n  - Theory: Child classes redefine inherited parent methods to implement specialized custom logic.\n  - Example:\n    class DenseLayer(Layer):\n        def __init__(self, name, units):\n            super().__init__(name)  # Invoke parent constructor\n            self.units = units\n        def show(self):  # Method Overriding\n            return f\"Dense Layer: {self.name} with {self.units} units\""
       },
       {
         title: "🚀 Industrial Realtime Example",
-        content: "Custom deep learning frameworks define a parent `class Layer:` containing basic weight trackers and shape checks. Specialized child classes like `class DenseLayer(Layer):` and `class ConvLayer(Layer):` inherit the parent parameters but implement custom forward mathematics."
+        content: "Defining a deep learning neural layer registry inheritance hierarchy:\n\nclass Layer:\n    def forward(self, input_tensor):\n        raise NotImplementedError(\"Subclasses must implement forward!\")\n\nclass ActivationLayer(Layer):\n    def __init__(self, activation_type=\"ReLU\"):\n        self.type = activation_type\n    def forward(self, input_tensor):\n        print(f\"Applying {self.type} function...\")\n        return [max(0.0, x) for x in input_tensor]  # ReLU calculation\n\nact = ActivationLayer()\noutputs = act.forward([-1.5, 2.0, -0.4])"
       }
     ],
     qa: [
-      { q: "What is the purpose of 'self' in Python class methods?", a: "The 'self' variable represents the specific instance of the object being modified, enabling distinct objects created from the same class blueprint to maintain independent data attributes." }
+      { q: "What does the super() function accomplish in class methods?", a: "The 'super()' function returns a proxy object that delegates method calls to a parent class, allowing child constructors to execute base constructors cleanly." }
     ],
     youtube: "https://www.youtube.com/watch?v=VMj-3S1tku0"
   },
   "python-specialized-data": {
-    title: "Specialized Path: Core Data Science Frameworks",
-    intro: "Step into statistical AI pipelines. Leverage NumPy for vectorized matrices, Pandas for tabular data wrangling, and Matplotlib for analytical charts.",
+    title: "Specialized Path: Core Data Science Frameworks (GeeksforGeeks Edition)",
+    intro: "Step into numerical AI pipelines. Leverage NumPy for vectorized calculations, Pandas for tabular data structures, and Matplotlib for analytical charts.",
     sections: [
       {
-        title: "1. NumPy Vectorized Computing",
-        content: "• Arrays: Replaces slow Python loops with contiguous C memory blocks (`np.ndarray`).\n• Math Operations: Runs high-speed dot products, vector additions, and slicing instantly across dimensions."
+        title: "1. NumPy Vectorized Computing & Dimensions",
+        content: "• Multi-Dimensional Arrays (ndarray):\n  - Theory: Replaces slow Python loops with highly optimized, contiguous blocks of C memory.\n  - Example:\n    import numpy as np\n    arr_1d = np.array([1, 2, 3])\n\n• Array Shapes & Dimensions:\n  - Theory: Track dimensions via '.shape' and re-structure matrices instantly without copying underlying data via '.reshape()'.\n  - Example:\n    matrix = np.arange(12).reshape(3, 4)  # 3 rows, 4 columns\n\n• Vector Math & Matrix Products:\n  - Theory: Perform instant element-wise matrix additions and calculate high-speed dot products via '@' or 'np.dot()'.\n  - Example:\n    a = np.array([1, 2])\n    b = np.array([3, 4])\n    product = np.dot(a, b)  # 11"
       },
       {
-        title: "2. Pandas Data Wrangling & Frames",
-        content: "• DataFrames: Two-dimensional structured tables similar to SQL spreadsheets.\n• Cleaning: Ingest messy files, filter column records, drop nulls, and run fast statistical group aggregates."
+        title: "2. Pandas Data Wrangling & Spreadsheets",
+        content: "• DataFrames & Structuring:\n  - Theory: Tabular two-dimensional spreadsheets where columns represent Series and rows share unique indices.\n  - Example:\n    import pandas as pd\n    df = pd.DataFrame({\"A\": [1, 2], \"B\": [3, 4]})\n\n• Ingestion, Grouping & Filtering:\n  - Theory: Parse files, perform boolean filters, group categories via '.groupby()', and run statisticalaggregates.\n  - Example:\n    # Ingest: df = pd.read_csv('dataset.csv')\n    # Group: df.groupby('category').mean()"
       },
       {
-        title: "3. Matplotlib Visual Plots",
-        content: "• Charting: Visualize training losses, model accuracies, and validation metrics using scatter plots, line graphs, and histograms."
+        title: "3. Matplotlib Visualizations & Accuracies",
+        content: "• Charting Plots:\n  - Theory: Render graphical charts to track training loss, validation accuracy curves, and data boundaries.\n  - Example:\n    # import matplotlib.pyplot as plt\n    # plt.plot([1, 2, 3], [10, 20, 30])\n    # plt.title('Accuracy Curve')\n    # plt.show()"
       },
       {
         title: "🚀 Industrial Realtime Example",
-        content: "Pre-processing pipelines load millions of customer records. A Pandas DataFrame cleans categorical variables and deletes missing values, a NumPy array converts clean parameters into numerical tensors, and Matplotlib plots the final anomaly boundaries."
+        content: "Ingesting, parsing, cleaning, and vectorizing server metrics:\n\n# import pandas as pd\n# import numpy as np\n\n# Ingest CSV file\n# df = pd.read_csv('server.csv')\n# df['cpu'].fillna(df['cpu'].median(), inplace=True)\n\n# Extract columns as numerical arrays for model inference\n# inputs = df[['cpu', 'memory']].to_numpy()\n# print(\"Matrix loaded into model pipeline. Shape:\", inputs.shape)"
       }
     ],
     qa: [
-      { q: "Why is vectorization in NumPy preferred over Python loops for array calculations?", a: "NumPy vectorization maps calculations directly to hardware SIMD (Single Instruction, Multiple Data) CPU/GPU operations, bypassing bytecode parsing cycles and running up to 100x faster." }
+      { q: "Why are NumPy array operations faster than Python lists?", a: "NumPy arrays utilize homogeneous memory layouts and execute calculations via compiled C code using SIMD hardware vectorization, bypassing dynamic type inspections." }
     ],
     youtube: "https://www.youtube.com/watch?v=wjZofJX0v4M"
   },
   "python-specialized-web": {
-    title: "Specialized Path: Web Frameworks & REST APIs",
-    intro: "Deploy your machine learning models to the internet. Master Flask routing, Django architectures, and backend REST API development.",
+    title: "Specialized Path: Web Frameworks & REST APIs (GeeksforGeeks Edition)",
+    intro: "Deploy your machine learning models to the internet. Master Flask routing, Django architectures, and backend JSON REST API serving.",
     sections: [
       {
-        title: "1. Flask Routing & Lightweight Serving",
-        content: "• Routing: Fast, minimalist micro-framework. Set up path listeners (e.g., `@app.route('/predict')`) to trigger prediction functions when endpoint requests land."
+        title: "1. Flask Routing & App Setup",
+        content: "• Flask App Configurations:\n  - Theory: Minimalist microservice framework designed for fast, low-overhead deployments.\n  - Example:\n    # from flask import Flask\n    # app = Flask(__name__)\n\n• Route Definition & App Listening:\n  - Theory: Set up URL endpoint listeners using decorator routing syntax (e.g., '@app.route()').\n  - Example:\n    # @app.route('/status')\n    # def status(): return {\"status\": \"active\"}"
       },
       {
-        title: "2. Django MVC Architecture",
-        content: "• Structure: Full-featured framework containing built-in database ORMs, security layers, admin panels, and standard MVC templates."
+        title: "2. Django MVC Architecture & Relational ORMs",
+        content: "• Full-Stack Django Structure:\n  - Theory: Heavyweight, fully secured MVC (Model-View-Template) web framework containing built-in admin configurations.\n  - Example:\n    # django-admin startproject config\n\n• Relational ORM Models:\n  - Theory: Map database schemas directly to Python class objects without writing raw SQL scripts.\n  - Example:\n    # class UserProfile(models.Model):\n    #     username = models.CharField(max_width=100)"
       },
       {
-        title: "3. Exposing REST APIs",
-        content: "• Services: Accept incoming user JSON payloads containing queries or images, pass inputs to pre-loaded model weights, and return standard JSON outputs."
+        title: "3. Serving REST APIs & JSON Responses",
+        content: "• Web Ingestion & Outputs:\n  - Theory: Exposing web APIs to accept incoming POST request JSON inputs, run prediction loops, and return JSON responses.\n  - Example:\n    # from flask import request, jsonify\n    # @app.route('/predict', methods=['POST'])\n    # def predict():\n    #     data = request.get_json()\n    #     return jsonify({\"prediction\": 1.0})"
       },
       {
         title: "🚀 Industrial Realtime Example",
-        content: "Enterprise AI systems deploy models inside Dockerized Flask endpoints. When mobile clients send JSON requests containing text inputs, Flask parses the payload, calls model prediction logic, and responds with a JSON sentiment score under 10 milliseconds."
+        content: "Creating a complete mock microservice class endpoint in Flask:\n\n# from flask import Flask, jsonify, request\n# app = Flask(__name__)\n\n# @app.route('/predict', methods=['POST'])\n# def run_inference():\n#     payload = request.get_json() or {}\n#     input_val = payload.get('value', 0)\n#     return jsonify({\"prediction\": input_val * 2.5, \"status\": \"success\"})\n\n# if __name__ == '__main__':\n#     app.run(port=5000)"
       }
     ],
     qa: [
-      { q: "When should you choose Flask over Django for serving machine learning models?", a: "Choose Flask for lightweight model microservices requiring low overhead and simple API routes. Choose Django for heavy, full-stack web portals requiring relational databases, user authentication, and admin interfaces." }
+      { q: "When should you choose Flask over Django?", a: "Choose Flask for lightweight model endpoints, microservices, and rapid API prototyping. Choose Django for heavy portals requiring built-in SQL databases, user auth, and admin tools." }
     ],
     youtube: "https://www.youtube.com/watch?v=KLlvPL4s1TY"
   },
   "python-specialized-automation": {
-    title: "Specialized Path: Automation, Scraping & OS Scripting",
-    intro: "Automate administrative routines. Build BeautifulSoup web scrapers to gather datasets, schedule tasks, and script OS file systems.",
+    title: "Specialized Path: Automation, Scraping & OS Scripting (GeeksforGeeks Edition)",
+    intro: "Automate administrative routines. Build BeautifulSoup web scrapers to gather datasets, schedule cron tasks, and script OS folder paths.",
     sections: [
       {
         title: "1. Web Scraping & BeautifulSoup",
-        content: "• Ingestion: Fetch web source codes using `requests` and parse HTML trees using BeautifulSoup to extract text datasets."
+        content: "• Requests Ingestions:\n  - Theory: Fetch source code from public HTML pages using requests pipelines.\n  - Example:\n    # import requests\n    # res = requests.get('https://news.ycombinator.com')\n\n• DOM Parsing (BeautifulSoup):\n  - Theory: Parse HTML tree nodes and search elements by tags, classes, or attributes.\n  - Example:\n    # from bs4 import BeautifulSoup\n    # soup = BeautifulSoup(res.text, 'html.parser')\n    # headings = soup.find_all('span', class_='titleline')"
       },
       {
-        title: "2. Task Scheduling & Crontab",
-        content: "• Scheduling: Automate Python script executions daily or hourly using system cron jobs or libraries like `schedule`."
+        title: "2. OS Module File System Scripts",
+        content: "• Scanning Directories:\n  - Theory: Navigate folders, scan lists of files, and create/rename directories dynamically using built-in system hooks.\n  - Example:\n    import os\n    files = os.listdir(\".\")\n\n• Creating Directories & Path Management:\n  - Theory: Check path existences and create folders recursively using 'os.makedirs()'.\n  - Example:\n    if not os.path.exists(\"archives\"):\n        os.makedirs(\"archives\")"
       },
       {
-        title: "3. OS File System Management",
-        content: "• Scripting: Navigate directories, scan file paths, move massive datasets, and create folders dynamically using standard libraries: `os` and `shutil`."
+        title: "3. Scheduled Automation Tasks (Cron & Loops)",
+        content: "• Scheduled Cron Scripts:\n  - Theory: Set up automated background tasks using scheduling libraries or operating system crontabs to run scripts daily or hourly.\n  - Example:\n    # import schedule\n    # import time\n    # def job(): print(\"Archiving files...\")\n    # schedule.every().day.at(\"02:00\").do(job)\n    # while True:\n    #     schedule.run_pending()\n    #     time.sleep(1)"
       },
       {
         title: "🚀 Industrial Realtime Example",
-        content: "Sentiment engines scrape competitor pricing daily. A scheduled script executes at 2:00 AM, parses item descriptions from web pages, logs results in dated text files using OS utilities, and updates the local database."
+        content: "An automated scheduled script that scans a directory, archives files, and logs statuses:\n\nimport os\nfrom datetime import datetime\n\ndef archive_logs():\n    src_file = \"logs.txt\"\n    archive_folder = \"archives\"\n    \n    if os.path.exists(src_file):\n        if not os.path.exists(archive_folder):\n            os.makedirs(archive_folder)\n        timestamp = datetime.now().strftime(\"%Y%m%d_%H%M%S\")\n        os.rename(src_file, f\"{archive_folder}/log_{timestamp}.txt\")\n        print(\"Log archived successfully!\")\n\narchive_logs()"
       }
     ],
     qa: [
-      { q: "How do you protect scraping scripts from getting blocked by target websites?", a: "Inject browser-like Request Headers ('User-Agent'), implement delayed intervals between queries to prevent server overload, and utilize rotating proxy IPs." }
+      { q: "How do you handle rate-limits and blocks while scraping?", a: "Inject mock browser headers ('User-Agent'), respect robots.txt rules, configure random delays between requests, and utilize rotating IP proxy services." }
     ],
     youtube: "https://www.youtube.com/watch?v=FBE1M1K695A"
   },
